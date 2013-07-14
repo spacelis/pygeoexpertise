@@ -19,23 +19,23 @@ class KnowledgeBase(object):
     """ KnowledgeBase stores all check-in information to support expert
         querying.
     """
-    def __init__(self, ck_profiles):
+    def __init__(self, checkin_set):
         """ Loading the dataframe of check-ins and construct the KnowledgeBase
         """
         super(KnowledgeBase, self).__init__()
-        self.ck_profiles = ck_profiles
+        self.checkin_set = checkin_set
 
     @classmethod
     def fromTSV(cls, filename):
         """ docstring for fromFile
         """
-        ck_profiles = pd.read_csv(
+        checkin_set = pd.read_csv(
             filename,
             sep='\t',
             header=None,
             names=['uid', 'category', 'created_at', 'poi'],
             parse_dates=[2])
-        return cls(ck_profiles)
+        return cls(checkin_set)
 
     @staticmethod
     def dotpath(obj, dpath):
@@ -64,38 +64,48 @@ class KnowledgeBase(object):
     @classmethod
     def fromMongo(cls,
                   collection,
-                  query=None,
+                  query,
                   projection=None):
-        """ docstring for fromMongo
+        """ Constructing the knowledgebase from a set of check-ins
+            queryed against the given collection in a MongoDB instance
+            :param collection: the collection instance where the check-ins
+                               stored
+            :param query: a query to fetch a set of check-in that meets
+                          certain criteria
+            :param projection: the final fields that should include in the
+                               queried
+            :return: a KnowledgeBase instance containing the check-ins
         """
         projection = projection or KnowledgeBase.DEFAULT_PROJECTION
         cur = collection.find(query, projection)
-        ck_profiles = KnowledgeBase.toDataFrame(
+        checkin_set = KnowledgeBase.toDataFrame(
             cur,
             list(projection.iterkeys()))
-        ck_profiles['created_date'] = ck_profiles['created_at'].map(
+        checkin_set['created_date'] = checkin_set['created_at'].map(
             lambda x: x.replace(hour=0, minute=0, second=0, microsecond=0))
-        return cls(ck_profiles)
+        return cls(checkin_set)
 
-    # TODO make use of multi-level index, which may ease grouping
-    def rankCheckinProfile(self, metrics):
-        """ Rank the profile based on checkins
-        """
-        ck_profiles = self.ck_profiles
-        profiles = ck_profiles.groupby('user.screen_name')
-        rank, scores = metrics(profiles)
-        return rank, scores
 
-    def rankActiveDayProfile(self, metrics):
-        """ Rank the profiles based on active days
-        """
-        day_profiles = self.ck_profiles.drop_duplicates(
-            cols=['user.screen_name',
-                  'created_date',
-                  'place.id'])
-        profiles = day_profiles.groupby('user.screen_name')
-        rank, scores = metrics(profiles)
-        return rank, scores
+# TODO make use of multi-level index, which may ease grouping
+def rankCheckinProfile(checkin_set, metrics):
+    """ Rank the profile based on checkins
+    """
+    profiles = checkin_set.groupby('user.screen_name')
+    rank, scores = metrics(profiles)
+    return rank, scores
+
+
+def rankActiveDayProfile(checkin_set, metrics):
+    """ Rank the profiles based on active days
+    """
+    day_profiles = checkin_set.drop_duplicates(
+        cols=['user.screen_name',
+              'created_date',
+              'place.id'])
+    day_profiles['created_at'] = day_profiles['created_date']
+    profiles = day_profiles.groupby('user.screen_name')
+    rank, scores = metrics(profiles)
+    return rank, scores
 
 
 def naive_metrics(profiles, topk=-1, **kargs):
@@ -159,7 +169,7 @@ def RD_metrics(profiles, topk=-1, **kargs):
     refdate = kargs.get('refdate', datetime.strptime('2013-08-01', '%Y-%m-%d'))
     mrank = profiles.agg(
         lambda row: np.sum([np.log2(_count_iter(y) + 1)
-                          for _, y in groupby(np.sort(x))]))
+                            for _, y in groupby(np.sort(row))]))
     if topk > 0:
         return mrank.index.values[:topk], mrank.values[:topk]
     else:

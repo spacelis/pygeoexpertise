@@ -30,8 +30,8 @@ def test_NaiveMetrics():
     """
     c = mg.MongoClient().testdb.checkin
     k = mt.KnowledgeBase.fromMongo(c)
-    rank, score = k.rankCheckinProfile(mt.naive_metrics)
-    rank, score = k.rankActiveDayProfile(mt.naive_metrics)
+    rank, score = mt.rankCheckinProfile(k.checkins, mt.naive_metrics)
+    rank, score = mt.rankActiveDayProfile(k.checkins, mt.naive_metrics)
 
 
 def test_RecencyMetrics():
@@ -39,8 +39,8 @@ def test_RecencyMetrics():
     """
     c = mg.MongoClient().testdb.checkin
     k = mt.KnowledgeBase.fromMongo(c)
-    rank, score = k.rankCheckinProfile(mt.recency_metrics)
-    rank, score = k.rankActiveDayProfile(mt.recency_metrics)
+    rank, score = mt.rankCheckinProfile(k.checkins, mt.recency_metrics)
+    rank, score = mt.rankActiveDayProfile(k.checkins, mt.recency_metrics)
 
 
 def test_DiversityMetrics():
@@ -48,8 +48,8 @@ def test_DiversityMetrics():
     """
     c = mg.MongoClient().testdb.checkin
     k = mt.KnowledgeBase.fromMongo(c)
-    rank, score = k.rankCheckinProfile(mt.diversity_metrics)
-    rank, score = k.rankActiveDayProfile(mt.diversity_metrics)
+    rank, score = mt.rankCheckinProfile(k.checkins, mt.diversity_metrics)
+    rank, score = mt.rankActiveDayProfile(k.checkins, mt.diversity_metrics)
 
 
 if __name__ == '__main__':

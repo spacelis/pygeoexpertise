@@ -11,7 +11,7 @@ Description:
 
 import numpy as np
 import pandas as pd
-from . import pandasmango
+from . import pandasmongo
 from datetime import datetime
 from itertools import groupby
 
@@ -20,23 +20,23 @@ class KnowledgeBase(object):
     """ KnowledgeBase stores all check-in information to support expert
         querying.
     """
-    def __init__(self, checkin_set):
+    def __init__(self, checkins):
         """ Loading the dataframe of check-ins and construct the KnowledgeBase
         """
         super(KnowledgeBase, self).__init__()
-        self.checkin_set = checkin_set
+        self.checkins = checkins
 
     @classmethod
     def fromTSV(cls, filename):
         """ docstring for fromFile
         """
-        checkin_set = pd.read_csv(
+        checkins = pd.read_csv(
             filename,
             sep='\t',
             header=None,
             names=['user', 'category', 'created_at', 'pid'],
             parse_dates=[2])
-        return cls(checkin_set)
+        return cls(checkins)
 
     DEFAULT_PROJECTION = {'id': 'id',
                           'user.screen_name': 'user',
@@ -48,38 +48,39 @@ class KnowledgeBase(object):
     @classmethod
     def fromMongo(cls,
                   collection,
-                  query,
+                  query=None,
                   projection=None):
         """ Constructing the knowledgebase from a set of check-ins
             queryed against the given collection in a MongoDB instance
             :param collection: the collection instance where the check-ins
-		stored
+                stored
             :param query: a query to fetch a set of check-in that meets
-		certain criteria
+                certain criteria
             :param projection: the final fields that should include in the
-		queried
+                queried
             :return: a KnowledgeBase instance containing the check-ins
         """
         projection = projection or KnowledgeBase.DEFAULT_PROJECTION
-        checkin_set = pandasmango.getDataFrame(collection, query, projection)
-        checkin_set['created_date'] = checkin_set['created_at'].map(
+        query = query or dict()
+        checkins = pandasmongo.getDataFrame(collection, query, projection)
+        checkins['created_date'] = checkins['created_at'].map(
             lambda x: x.replace(hour=0, minute=0, second=0, microsecond=0))
-        return cls(checkin_set)
+        return cls(checkins)
 
 
 # TODO make use of multi-level index, which may ease grouping
-def rankCheckinProfile(checkin_set, metrics):
+def rankCheckinProfile(checkins, metrics):
     """ Rank the profile based on checkins
     """
-    profiles = checkin_set.groupby('user')
+    profiles = checkins.groupby('user')
     rank, scores = metrics(profiles)
     return rank, scores
 
 
-def rankActiveDayProfile(checkin_set, metrics):
+def rankActiveDayProfile(checkins, metrics):
     """ Rank the profiles based on active days
     """
-    day_profiles = checkin_set.drop_duplicates(
+    day_profiles = checkins.drop_duplicates(
         cols=['user',
               'created_date',
               'pid'])

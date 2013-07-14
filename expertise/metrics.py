@@ -11,6 +11,7 @@ Description:
 
 import numpy as np
 import pandas as pd
+from . import pandasmango
 from datetime import datetime
 from itertools import groupby
 
@@ -33,33 +34,16 @@ class KnowledgeBase(object):
             filename,
             sep='\t',
             header=None,
-            names=['uid', 'category', 'created_at', 'poi'],
+            names=['user', 'category', 'created_at', 'pid'],
             parse_dates=[2])
         return cls(checkin_set)
 
-    @staticmethod
-    def dotpath(obj, dpath):
-        """ get value through dotpath
-        """
-        for n in dpath.split('.'):
-            obj = obj.get(n)
-        return obj
-
-    DEFAULT_PROJECTION = {'id': 1,
-                          'user.screen_name': 1,
-                          'place.id': 1,
-                          'place.name': 1,
-                          'place.category.name': 1,
-                          'created_at': 1}
-
-    @staticmethod
-    def toDataFrame(obj_iter, keylist):
-        """ iterating through the obj_iter and extract values of the keys
-        """
-        obj_list = list()
-        for obj in obj_iter:
-            obj_list.append([KnowledgeBase.dotpath(obj, k) for k in keylist])
-        return pd.DataFrame(obj_list, columns=keylist)
+    DEFAULT_PROJECTION = {'id': 'id',
+                          'user.screen_name': 'user',
+                          'place.id': 'pid',
+                          'place.name': 'place',
+                          'place.category.name': 'category',
+                          'created_at': 'created_at'}
 
     @classmethod
     def fromMongo(cls,
@@ -69,18 +53,15 @@ class KnowledgeBase(object):
         """ Constructing the knowledgebase from a set of check-ins
             queryed against the given collection in a MongoDB instance
             :param collection: the collection instance where the check-ins
-                               stored
+		stored
             :param query: a query to fetch a set of check-in that meets
-                          certain criteria
+		certain criteria
             :param projection: the final fields that should include in the
-                               queried
+		queried
             :return: a KnowledgeBase instance containing the check-ins
         """
         projection = projection or KnowledgeBase.DEFAULT_PROJECTION
-        cur = collection.find(query, projection)
-        checkin_set = KnowledgeBase.toDataFrame(
-            cur,
-            list(projection.iterkeys()))
+        checkin_set = pandasmango.getDataFrame(collection, query, projection)
         checkin_set['created_date'] = checkin_set['created_at'].map(
             lambda x: x.replace(hour=0, minute=0, second=0, microsecond=0))
         return cls(checkin_set)
@@ -90,7 +71,7 @@ class KnowledgeBase(object):
 def rankCheckinProfile(checkin_set, metrics):
     """ Rank the profile based on checkins
     """
-    profiles = checkin_set.groupby('user.screen_name')
+    profiles = checkin_set.groupby('user')
     rank, scores = metrics(profiles)
     return rank, scores
 
@@ -99,11 +80,11 @@ def rankActiveDayProfile(checkin_set, metrics):
     """ Rank the profiles based on active days
     """
     day_profiles = checkin_set.drop_duplicates(
-        cols=['user.screen_name',
+        cols=['user',
               'created_date',
-              'place.id'])
+              'pid'])
     day_profiles['created_at'] = day_profiles['created_date']
-    profiles = day_profiles.groupby('user.screen_name')
+    profiles = day_profiles.groupby('user')
     rank, scores = metrics(profiles)
     return rank, scores
 
@@ -150,7 +131,7 @@ def _count_iter(it):
 def diversity_metrics(profiles, topk=-1, **kargs):
     """ A metrics boosting diverse visits
     """
-    mrank = profiles['place.id'].agg(
+    mrank = profiles['pid'].agg(
         lambda x: np.sum([np.log2(_count_iter(y) + 1)
                           for _, y in groupby(np.sort(x))]))
     if topk > 0:

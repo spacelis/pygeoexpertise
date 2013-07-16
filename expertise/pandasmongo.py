@@ -29,3 +29,9 @@ def getDataFrame(collection, query, projection):
     for obj in collection.find(query, projection):
         obj_list.append([dotpath(obj, k) for k in keys])
     return pd.DataFrame(obj_list, columns=vals)
+
+def appendToDataFrame(df, collection, query, projection):
+    """ append new rows from query
+    """
+    ndf = getDataFrame(collection, query, projection)
+    return pd.concat([df, ndf], ignore_index=True)

@@ -41,6 +41,8 @@ class KnowledgeBase(object):
     DEFAULT_PROJECTION = {'id': 'id',
                           'user.screen_name': 'user',
                           'place.id': 'pid',
+                          'place.bounding_box.0.0.1': 'lat',
+                          'place.bounding_box.0.0.0': 'lng',
                           'place.name': 'place',
                           'place.category.name': 'category',
                           'created_at': 'created_at'}

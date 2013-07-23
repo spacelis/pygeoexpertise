@@ -92,12 +92,12 @@ def rankActiveDayProfile(checkins, metrics):
     return rank, scores
 
 
-def naive_metrics(profiles, topk=-1, **kargs):
+def naive_metrics(profiles, cutoff=-1, **kargs):
     """ using number of visitings / active days themselves for ranking
     """
     mrank = profiles['id'].count().order(ascending=False)
-    if topk > 0:
-        return mrank.index.values[:topk], mrank.values[:topk]
+    if cutoff > 0:
+        return mrank.index.values[:cutoff], mrank.values[:cutoff]
     else:
         return mrank.index.values, mrank.values
 
@@ -109,15 +109,16 @@ def _time_diff(t1, t2):
     return (t1 - t2).days
 
 
-def recency_metrics(profiles, topk=-1, **kargs):
+def recency_metrics(profiles, cutoff=-1, **kargs):
     """ A metrics boosting recent visits
     """
     refdate = kargs.get('refdate', datetime.strptime('2013-08-01', '%Y-%m-%d'))
     decay_rate = kargs.get('decay_rate', 1. / 60)
     mrank = profiles['created_at'].agg(
-        lambda x: np.sum(np.exp(_time_diff(x, refdate) * decay_rate)))
-    if topk > 0:
-        return mrank.index.values[:topk], mrank.values[:topk]
+        lambda x: np.sum(np.exp(_time_diff(x, refdate) * decay_rate))) \
+        .order(ascending=False)
+    if cutoff > 0:
+        return mrank.index.values[:cutoff], mrank.values[:cutoff]
     else:
         return mrank.index.values, mrank.values
 
@@ -131,30 +132,33 @@ def _count_iter(it):
     return cnt
 
 
-def diversity_metrics(profiles, topk=-1, **kargs):
+def diversity_metrics(profiles, cutoff=-1, **kargs):
     """ A metrics boosting diverse visits
     """
     mrank = profiles['pid'].agg(
         lambda x: np.sum([np.log2(_count_iter(y) + 1)
-                          for _, y in groupby(np.sort(x))]))
-    if topk > 0:
-        return mrank.index.values[:topk], mrank.values[:topk]
+                          for _, y in groupby(np.sort(x))]))\
+        .order(ascending=False)
+
+    if cutoff > 0:
+        return mrank.index.values[:cutoff], mrank.values[:cutoff]
     else:
         return mrank.index.values, mrank.values
 
 
-def RD_metrics(profiles, topk=-1, **kargs):
-    """ A metrics boosting diverse visits
-    """
-    # TODO not finished, planned to use row wise aggregation function
-    # for the job
-    # NOTICE the log function for diversity and exp for recency looks
-    # funny when putting them together
-    refdate = kargs.get('refdate', datetime.strptime('2013-08-01', '%Y-%m-%d'))
-    mrank = profiles.agg(
-        lambda row: np.sum([np.log2(_count_iter(y) + 1)
-                            for _, y in groupby(np.sort(row))]))
-    if topk > 0:
-        return mrank.index.values[:topk], mrank.values[:topk]
-    else:
-        return mrank.index.values, mrank.values
+#def RD_metrics(profiles, cutoff=-1, **kargs):
+    #""" A metrics boosting diverse visits
+    #"""
+    ## TODO not finished, planned to use row wise aggregation function
+    ## for the job
+    ## NOTICE the log function for diversity and exp for recency looks
+    ## funny when putting them together
+    #refdate = kargs.get('refdate',
+                         #datetime.strptime('2013-08-01', '%Y-%m-%d'))
+    #mrank = profiles.agg(
+        #lambda row: np.sum([np.log2(_count_iter(y) + 1)
+                            #for _, y in groupby(np.sort(row))]))
+    #if cutoff > 0:
+        #return mrank.index.values[:cutoff], mrank.values[:cutoff]
+    #else:
+        #return mrank.index.values, mrank.values

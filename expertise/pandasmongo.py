@@ -28,9 +28,11 @@ class DotPathEvaluator(object):
         """
         self._path = path
         peval = eval('lambda self, x: x' + ''.join(
-            [("[%d]" if DotPathEvaluator.INT.match(k) else "['%s']") % (k, )
+            [("[%d]" % (int(k), ))
+             if DotPathEvaluator.INT.match(k)
+             else "['%s']" % (k, )
              for k in path.split('.')]))
-        self.__call__ = types.MethodType(peval, self, self.__class__)
+        self.extract = types.MethodType(peval, self, self.__class__)
 
     def __str__(self):
         """ __str__
@@ -48,7 +50,7 @@ def getDataFrame(collection, query, projection):
     keyevals = [DotPathEvaluator(k) for k in keys]
     obj_list = list()
     for obj in collection.find(query):
-        obj_list.append([ke(obj) for ke in keyevals])
+        obj_list.append([ke.extract(obj) for ke in keyevals])
     return pd.DataFrame(obj_list, columns=vals)
 
 

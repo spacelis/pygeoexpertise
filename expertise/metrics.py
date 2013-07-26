@@ -21,15 +21,17 @@ class KnowledgeBase(object):
         querying.
 
         Mapping from json to table columns:
-            id:................................id
-            user.screen_name:..................user
-            place.id:..........................pid
-            place.bounding_box.0.0.1:..........lat
-            place.bounding_box.0.0.0:..........lng
-            place.name:........................place
-            place.category.name:...............category
-            place.category.zero_category_name:.z_category
-            created_at:........................created_at
+            id..................................id
+            user.screen_name....................user
+            place.id............................pid
+            place.bounding_box.0.0.1............lat
+            place.bounding_box.0.0.0............lng
+            place.name..........................place
+            place.category.name.................category
+            place.category.id...................cid
+            place.category.zero_category_name...z_category
+            place.category.zero_category........zcid
+            created_at..........................created_at
     """
     def __init__(self, checkins):
         """ Loading the dataframe of check-ins and construct the KnowledgeBase
@@ -56,7 +58,9 @@ class KnowledgeBase(object):
                           'place.bounding_box.0.0.0': 'lng',
                           'place.name': 'place',
                           'place.category.name': 'category',
+                          'place.category.id': 'cid',
                           'place.category.zero_category_name': 'z_category',
+                          'place.category.zero_category': 'zcid',
                           'created_at': 'created_at'}
 
     @classmethod

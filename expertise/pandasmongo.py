@@ -9,15 +9,35 @@ Description:
     Make DataFrame from mongodb
 """
 
+import re
+import types
 import pandas as pd
 
 
-def dotpath(obj, dpath):
-    """ get value through dotpath
-    """
-    for n in dpath.split('.'):
-        obj = obj.get(n)
-    return obj
+class DotPathEvaluator(object):
+
+    """ Evaluating the dot path on a json object."""
+
+    INT = re.compile('^[0-9]+$')
+
+    def __init__(self, path):
+        """ Initialize the object with the path.
+
+        :path: @todo
+
+        """
+        self._path = path
+        peval = eval('lambda self, x: x' + ''.join(
+            [("[%d]" if DotPathEvaluator.INT.match(k) else "['%s']") % (k, )
+             for k in path.split('.')]))
+        self.__call__ = types.MethodType(peval, self, self.__class__)
+
+    def __str__(self):
+        """ __str__
+        :returns: The dotpath of this evaluator
+
+        """
+        return self._path
 
 
 def getDataFrame(collection, query, projection):
@@ -25,10 +45,12 @@ def getDataFrame(collection, query, projection):
         projection to flatten the data.
     """
     keys, vals = zip(*projection.iteritems())
+    keyevals = [DotPathEvaluator(k) for k in keys]
     obj_list = list()
-    for obj in collection.find(query, projection):
-        obj_list.append([dotpath(obj, k) for k in keys])
+    for obj in collection.find(query):
+        obj_list.append([ke(obj) for ke in keyevals])
     return pd.DataFrame(obj_list, columns=vals)
+
 
 def appendToDataFrame(df, collection, query, projection):
     """ append new rows from query

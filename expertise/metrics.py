@@ -11,8 +11,7 @@ Description:
 
 import numpy as np
 import pandas as pd
-import pandasmongo
-from datetime import datetime
+import expertise.pandasmongo as pandasmongo
 from itertools import groupby
 
 
@@ -129,11 +128,13 @@ def naive_metrics(profiles, cutoff=-1, **kargs):
         return mrank.index.values, mrank.values
 
 
-@np.vectorize
-def _time_diff(t1, t2):
+ONEDAY = np.timedelta64(1, 'D')
+
+
+def _time_diff(t_array, t):
     """ Return the difference between two time points
     """
-    return (t1 - t2).days
+    return (t_array - t) / ONEDAY
 
 
 def recency_metrics(profiles, cutoff=-1, **kargs):
@@ -142,7 +143,7 @@ def recency_metrics(profiles, cutoff=-1, **kargs):
     refdate = kargs.get('refdate', np.datetime64('2013-08-01T00:00:00+02'))
     decay_rate = kargs.get('decay_rate', 1. / 60)
     mrank = profiles['created_at'].agg(
-        lambda x: np.sum(np.exp(_time_diff(x, refdate) * decay_rate))) \
+        lambda x: np.sum(np.exp(_time_diff(x.values, refdate) * decay_rate))) \
         .order(ascending=False)
     if cutoff > 0:
         return mrank.index.values[:cutoff], mrank.values[:cutoff]

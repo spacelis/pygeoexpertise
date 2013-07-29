@@ -159,7 +159,7 @@ def gen_topics(outfile):
         t = sampling_poi_topics(r, 45, [0.1, 0.8, 0.1])
         topic_set = topic_set.append(t, ignore_index=True)
     with open(outfile, 'w') as fout:
-        topic_set.to_csv(fout, index=False, na_rep='N/A', cols=COLS)
+        topic_set.to_csv(fout, index=False, na_rep='N/A', cols=COLS, encoding='utf-8')
 
 if __name__ == '__main__':
     gen_topics(sys.argv[1])

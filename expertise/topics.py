@@ -145,7 +145,7 @@ def zcate_category(regions):
     return topics
 
 
-def get_topics():
+def gen_topics(outfile):
     """Return all topics generate from the database
     :returns: @todo
 
@@ -158,7 +158,8 @@ def get_topics():
     for r in REGIONS.itervalues():
         t = sampling_poi_topics(r, 45, [0.1, 0.8, 0.1])
         topic_set = topic_set.append(t, ignore_index=True)
-    topic_set.to_csv(sys.stdout, index=False, na_rep='N/A', cols=COLS)
+    with open(outfile, 'w') as fout:
+        topic_set.to_csv(fout, index=False, na_rep='N/A', cols=COLS)
 
 if __name__ == '__main__':
-    get_topics()
+    gen_topics(sys.argv[1])

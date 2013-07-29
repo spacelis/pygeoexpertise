@@ -11,7 +11,7 @@ Description:
 
 import numpy as np
 import pandas as pd
-from . import pandasmongo
+import pandasmongo
 from datetime import datetime
 from itertools import groupby
 
@@ -85,17 +85,28 @@ class KnowledgeBase(object):
             lambda x: x.replace(hour=0, minute=0, second=0, microsecond=0))
         return cls(checkins)
 
+    def rank(self, profile_type, metrics, cutoff=5):
+        """Rank the userbase based on the given profile_type and metrics
+
+        :profile_type: @todo
+        :metrics: @todo
+        :cutoff: @todo
+        :returns: @todo
+
+        """
+        return profile_type(self.checkins, metrics, cutoff=cutoff)
+
 
 # TODO make use of multi-level index, which may ease grouping
-def rankCheckinProfile(checkins, metrics):
+def rankCheckinProfile(checkins, metrics, **kargs):
     """ Rank the profile based on checkins
     """
     profiles = checkins.groupby('user')
-    rank, scores = metrics(profiles)
+    rank, scores = metrics(profiles, **kargs)
     return rank, scores
 
 
-def rankActiveDayProfile(checkins, metrics):
+def rankActiveDayProfile(checkins, metrics, **kargs):
     """ Rank the profiles based on active days
     """
     day_profiles = checkins.drop_duplicates(
@@ -104,7 +115,7 @@ def rankActiveDayProfile(checkins, metrics):
               'pid'])
     day_profiles['created_at'] = day_profiles['created_date']
     profiles = day_profiles.groupby('user')
-    rank, scores = metrics(profiles)
+    rank, scores = metrics(profiles, **kargs)
     return rank, scores
 
 

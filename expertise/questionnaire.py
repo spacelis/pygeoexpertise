@@ -13,8 +13,8 @@ import sys
 import uuid
 import pymongo
 import pandas as pd
-from . import metrics as mt
-from .topics import REGIONS
+import expertise.metrics as mt
+from expertise.topics import REGIONS
 
 
 def _getid():
@@ -44,13 +44,13 @@ class Survey(object):
         q = dict()
         q.update(query['region']['value'])
         q.update(query['topic']['value'])
-        kbase = mt.KnowledgeBase.fromMongo(self.collection, query)
-        rank, scores = rank_method(kbase.checkins, profile_type, cutoff=cutoff)
+        kbase = mt.KnowledgeBase.fromMongo(self.collection, q)
+        rank, scores = kbase.rank(profile_type, rank_method, cutoff=cutoff)
         ranking = pd.DataFrame([{
             'rank_id': '%s-%s' % (self.name, _getid()),
-            'topic_id': query['topic_id'],
-            'region': query['region']['name'],
-            'topic': query['topic']['name'],
+            'topic_id': q['topic_id'],
+            'region': q['region']['name'],
+            'topic': q['topic']['name'],
             'user_screen_name': r,
             'rank_method': rank_method.__name__,
             'rank': i + 1,
@@ -74,13 +74,13 @@ class Survey(object):
                     'topic': {'name': name,
                               'value': {'place.category.id': ident}},
                     'region': {'name': region_name,
-                               'value': REGIONS[region_name]}}
+                               'value': REGIONS[region_name]['value']}}
         else:
             return {'topic_id': topic_id,
                     'topic': {'name': name,
                               'value': {'place.id': ident}},
                     'region': {'name': region_name,
-                               'value': REGIONS[region_name]}}
+                               'value': REGIONS[region_name]['value']}}
 
     def batchQuery(self, topics, metrics, profile_type):
         """ batchquery
@@ -90,8 +90,9 @@ class Survey(object):
         for t in topics.values:
             t = dict(zip(topics.columns, t))
             q = self.formatQuery(t['topic_id'], t['topic'],
-                                    t['associate_id'], t['region'],
-                                    'cate' in t['topic_id'])
+                                 t['associate_id'], t['region'],
+                                 'cate' in t['topic_id'])
+            print >> sys.stderr, 'Processing %s...' % (q['topic_id'])
             for mtc in metrics:
                 for pf_type in profile_type:
                     rank = self.rankExperts(q, mtc, pf_type, 5)

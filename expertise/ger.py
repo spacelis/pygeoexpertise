@@ -9,10 +9,13 @@ Description:
     Metrics for evaluating users geo expertise
 """
 
+import logging
 import numpy as np
 import pandas as pd
 import expertise.pandasmongo as pandasmongo
 from itertools import groupby
+from topics import REGIONS
+import uuid
 
 
 class KnowledgeBase(object):
@@ -192,3 +195,95 @@ def diversity_metrics(profiles, cutoff=-1, **kargs):
         #return mrank.index.values[:cutoff], mrank.values[:cutoff]
     #else:
         #return mrank.index.values, mrank.values
+
+
+class GeoExpertRetrieval(object):
+    """ A class represent a survey consisting of a bunch of questionnaires
+    """
+    def __init__(self, name, collection):
+        super(GeoExpertRetrieval, self).__init__()
+        self.name = name
+        self.collection = collection
+        self._logger = logging.getLogger(
+            '%s.%s' % (__name__, type(self).__name__))
+
+    @staticmethod
+    def _getid():
+        """ Return an unique identifier
+        """
+        return uuid.uuid4()
+
+    def rankExperts(self, query, rank_method, profile_type, cutoff=10):
+        """ Return a set of parameters for setting up questionnaires
+            :param query: a dict() object holding topic and region for query
+                {topic:{name:, value:}, region:{name:, value:} }
+            :param rank_method: the ranking method name
+            :param profile_type: the ranking profile type
+            :param cutoff: the length of the returned list
+            :return: a set of rows containing information for setting up
+                     a set of questions
+        """
+        q = dict()
+        q.update(query['region']['value'])
+        q.update(query['topic']['value'])
+        kbase = KnowledgeBase.fromMongo(self.collection, q)
+        rank, scores = kbase.rank(profile_type, rank_method, cutoff=cutoff)
+        ranking = pd.DataFrame([{
+            'rank_id': '%s-%s' % (self.name, GeoExpertRetrieval._getid()),
+            'topic_id': query['topic_id'],
+            'region': query['region']['name'],
+            'topic': query['topic']['name'],
+            'user_screen_name': r,
+            'rank_method': rank_method.__name__,
+            'rank': i + 1,
+            'score': s,
+        } for i, (r, s) in enumerate(zip(rank, scores))])
+        return ranking
+
+    def formatQuery(self, topic_id, name, ident, region_name, region_value,
+                    is_cate=False):
+        """ Format query
+
+        :topic_id: @todo
+        :name: @todo
+        :ident: @todo
+        :region_name: @todo
+        :is_cate: @todo
+        :returns: @todo
+
+        """
+        if is_cate:
+            return {'topic_id': topic_id,
+                    'topic': {'name': name,
+                              'value': {'place.category.id': ident}},
+                    'region': {'name': region_name,
+                               'value': region_value}}
+        else:
+            return {'topic_id': topic_id,
+                    'topic': {'name': name,
+                              'value': {'place.id': ident}},
+                    'region': {'name': region_name,
+                               'value': region_value}}
+
+    RANK_SCHEMA = ['topic_id', 'rank', 'user_screen_name', 'score',
+                   'rank_method', 'region', 'topic', 'rank_id']
+
+    def batchQuery(self, topics, metrics, profile_type):
+        """ batchquery
+        """
+        rankings = pd.DataFrame(columns=GeoExpertRetrieval.RANK_SCHEMA)
+        for t in topics.values:
+            t = dict(zip(topics.columns, t))
+            q = self.formatQuery(t['topic_id'], t['topic'],
+                                 t['associate_id'], t['region'],
+                                 REGIONS[t['region']]['value'],
+                                 'cate' in t['topic_id'])
+            self._logger.info('Processing %(topic_id)s...', q)
+            try:
+                for mtc in metrics:
+                    for pf_type in profile_type:
+                        rank = self.rankExperts(q, mtc, pf_type, 5)
+                        rankings = rankings.append(rank)
+            except:
+                self._logger.error('Failed at %(topic_id)s', q)
+        return rankings

@@ -139,7 +139,7 @@ def _time_diff(t1, t2):
 def recency_metrics(profiles, cutoff=-1, **kargs):
     """ A metrics boosting recent visits
     """
-    refdate = kargs.get('refdate', datetime.strptime('2013-08-01', '%Y-%m-%d'))
+    refdate = kargs.get('refdate', np.datetime64('2013-08-01T00:00:00+02'))
     decay_rate = kargs.get('decay_rate', 1. / 60)
     mrank = profiles['created_at'].agg(
         lambda x: np.sum(np.exp(_time_diff(x, refdate) * decay_rate))) \

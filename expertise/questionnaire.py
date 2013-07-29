@@ -48,9 +48,9 @@ class Survey(object):
         rank, scores = kbase.rank(profile_type, rank_method, cutoff=cutoff)
         ranking = pd.DataFrame([{
             'rank_id': '%s-%s' % (self.name, _getid()),
-            'topic_id': q['topic_id'],
-            'region': q['region']['name'],
-            'topic': q['topic']['name'],
+            'topic_id': query['topic_id'],
+            'region': query['region']['name'],
+            'topic': query['topic']['name'],
             'user_screen_name': r,
             'rank_method': rank_method.__name__,
             'rank': i + 1,

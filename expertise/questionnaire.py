@@ -23,11 +23,11 @@ def _getid():
     return uuid.uuid4()
 
 
-class Survey(object):
+class GeoExpertRetrieval(object):
     """ A class represent a survey consisting of a bunch of questionnaires
     """
     def __init__(self, name, collection):
-        super(Survey, self).__init__()
+        super(GeoExpertRetrieval, self).__init__()
         self.name = name
         self.collection = collection
 
@@ -82,21 +82,26 @@ class Survey(object):
                     'region': {'name': region_name,
                                'value': REGIONS[region_name]['value']}}
 
+    RANK_SCHEMA = ['topic_id', 'rank', 'user_screen_name', 'score',
+                   'rank_method', 'region', 'topic', 'rank_id']
+
     def batchQuery(self, topics, metrics, profile_type):
         """ batchquery
         """
-        rankings = pd.DataFrame(columns=['topic_id', 'rank', 'uid',
-                                         'score', 'runtag'])
+        rankings = pd.DataFrame(columns=GeoExpertRetrieval.RANK_SCHEMA)
         for t in topics.values:
             t = dict(zip(topics.columns, t))
             q = self.formatQuery(t['topic_id'], t['topic'],
                                  t['associate_id'], t['region'],
                                  'cate' in t['topic_id'])
             print >> sys.stderr, 'Processing %s...' % (q['topic_id'])
-            for mtc in metrics:
-                for pf_type in profile_type:
-                    rank = self.rankExperts(q, mtc, pf_type, 5)
-                    rankings = rankings.append(rank)
+            try:
+                for mtc in metrics:
+                    for pf_type in profile_type:
+                        rank = self.rankExperts(q, mtc, pf_type, 5)
+                        rankings = rankings.append(rank)
+            except:
+                print >> sys.stderr, 'Failed at %s' % (q['topic_id'])
         return rankings
 
 
@@ -111,9 +116,10 @@ def self_eval_survey(outfile, topicfile):
     """
     topics = pd.read_csv(topicfile)
     checkin_collection = pymongo.MongoClient().geoexpert.checkin
-    survey = Survey('selfeval', checkin_collection)
+    survey = GeoExpertRetrieval('selfeval', checkin_collection)
     rankings = survey.batchQuery(topics, METRICS, PROFILE_TYPES)
-    rankings.to_csv(outfile)
+    rankings.to_csv(outfile, float_format='%.3f', index=False,
+                    names=GeoExpertRetrieval.RANK_SCHEMA)
 
 
 if __name__ == '__main__':

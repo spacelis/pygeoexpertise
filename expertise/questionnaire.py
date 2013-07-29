@@ -10,6 +10,7 @@ Description:
 """
 
 import sys
+import logging
 import pymongo
 import pandas as pd
 import expertise.metrics as mt
@@ -34,4 +35,7 @@ def generate_ses_topics(outfile, topicfile):
 
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
     generate_ses_topics(sys.argv[1], sys.argv[2])

@@ -67,6 +67,7 @@ def sampling_poi_topics(region, size, g_percentages):
                                          'associate_id': pid,
                                          'zcategory': zcate,
                                          'group': gid}])
+    _LOGGER.info('# POI_topics: %d', len(topics))
     return topics
 
 
@@ -102,6 +103,7 @@ def sampling_cate_topics(regions, size, g_percentages):
                                              'associate_id': cid,
                                              'zcategory': zcate,
                                              'group': gid}])
+    _LOGGER.info('# CATE_topics: %d', len(topics))
     for zcate, group in checkins.groupby('z_category'):
         for r in regions:
             topics = topics.append([{'topic_id': ZCATE_ID.next(),
@@ -109,6 +111,7 @@ def sampling_cate_topics(regions, size, g_percentages):
                                      'region': r['name'],
                                      'associate_id': group['zcid'].values[0],
                                      'zcategory': zcate}])
+    _LOGGER.info('# Total Cate_topics: %d', len(topics))
     return topics
 
 
@@ -126,6 +129,7 @@ def gen_topics(outfile):
     with open(outfile, 'w') as fout:
         topic_set.to_csv(fout, index=False, na_rep='N/A',
                          cols=TOPIC_SCHEMA, encoding='utf-8')
+    _LOGGER.info('# Total Topics: %d', len(topic_set))
 
 if __name__ == '__main__':
     logging.basicConfig(

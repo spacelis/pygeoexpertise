@@ -97,26 +97,6 @@ def sampling_cate_topics(regions, size, g_percentages):
                                              'associate_id': cid,
                                              'zcategory': zcate,
                                              'group': gid}])
-    return topics
-
-
-def zcate_category(regions):
-    """ Generating the top categories as topics
-
-    :regions: @todo
-    :returns: @todo
-
-    """
-    topics = pd.DataFrame(columns=TOPIC_SCHEMA)
-    checkins = None
-    for r in regions:
-        kbase = KnowledgeBase.fromMongo(db.checkin, r['value'])
-        if checkins is not None:
-            checkins= checkins.append(kbase.checkins, ignore_index=True)
-        else:
-            checkins = kbase.checkins
-    _LOGGER.info('%d checkins loaded for cate_topics', len(checkins))
-    checkins.drop_duplicates(cols=['pid', 'user'], inplace=True)
     for zcate, group in checkins.groupby('z_category'):
         for r in regions:
             topics = topics.append([{'topic_id': ZCATE_ID.next(),
@@ -134,8 +114,6 @@ def gen_topics(outfile):
     """
     topic_set = pd.DataFrame(columns=TOPIC_SCHEMA)
     t = sampling_cate_topics(list(REGIONS.itervalues()), 18, [0.1, 0.9])
-    topic_set = topic_set.append(t, ignore_index=True)
-    t = zcate_category(list(REGIONS.itervalues()))
     topic_set = topic_set.append(t, ignore_index=True)
     for r in REGIONS.itervalues():
         t = sampling_poi_topics(r, 45, [0.1, 0.8, 0.1])

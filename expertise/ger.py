@@ -157,6 +157,24 @@ def naive_metrics(profiles, cutoff=-1, **kargs):
         return mrank.index.values, mrank.values
 
 
+def random_metrics(profiles, cutoff=-1, **kargs):
+    """ As a random baseline
+
+    :profiles: @todo
+    :cutoff: @todo
+    :**kargs: @todo
+    :returns: @todo
+
+    """
+    mrank = profiles['id'].count().index.values.copy()
+    np.random.shuffle(mrank)
+    if cutoff > 0:
+        return np.random.choice(mrank, size=cutoff, replace=False), \
+            np.zeros(cutoff)
+    else:
+        return mrank, np.zeros(len(mrank))
+
+
 ONEDAY = np.timedelta64(1, 'D')
 
 
@@ -313,7 +331,7 @@ class GeoExpertRetrieval(object):
         return rankings
 
 
-METRICS = [naive_metrics, recency_metrics, diversity_metrics]
+METRICS = [naive_metrics, recency_metrics, diversity_metrics, random_metrics]
 PROFILE_TYPES = [rankCheckinProfile, rankActiveDayProfile]
 
 

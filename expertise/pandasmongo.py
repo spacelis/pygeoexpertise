@@ -51,6 +51,8 @@ def getDataFrame(collection, query, projection):
     obj_list = list()
     for obj in collection.find(query):
         obj_list.append([ke.extract(obj) for ke in keyevals])
+    if len(obj_list) <= 0:
+        raise ValueError('No data returned from the query.')
     return pd.DataFrame(obj_list, columns=vals)
 
 

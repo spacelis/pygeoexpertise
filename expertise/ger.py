@@ -168,9 +168,8 @@ def random_metrics(profiles, cutoff=-1, **kargs):
     """
     mrank = profiles['id'].count().index.values.copy()
     np.random.shuffle(mrank)
-    if len(mrank) > cutoff > 0:
-        return np.random.choice(mrank, size=cutoff, replace=False), \
-            np.zeros(cutoff)
+    if cutoff > 0:
+        return mrank[:cutoff], np.zeros(len(mrank))
     else:
         return mrank, np.zeros(len(mrank))
 
@@ -321,15 +320,15 @@ class GeoExpertRetrieval(object):
                                  REGIONS[t['region']]['value'],
                                  'cate' in t['topic_id'])
             self._logger.info('Processing %(topic_id)s...', q)
-            #try:
-            for mtc in metrics:
-                if ('poi' in t['topic_id']) and mtc == diversity_metrics:
-                    continue
-                for pf_type in profile_type:
-                    rank = self.rankExperts(q, mtc, pf_type, 5)
-                    rankings = rankings.append(rank)
-            #except:
-                #self._logger.error('Failed at %(topic_id)s', q)
+            try:
+                for mtc in metrics:
+                    if ('poi' in t['topic_id']) and mtc == diversity_metrics:
+                        continue
+                    for pf_type in profile_type:
+                        rank = self.rankExperts(q, mtc, pf_type, 5)
+                        rankings = rankings.append(rank)
+            except ValueError as e:
+                self._logger.exception('Failed at %(topic_id)s', q)
         return rankings
 
 

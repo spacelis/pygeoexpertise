@@ -21,6 +21,7 @@ db = MongoClient().geoexpert
 
 _LOGGER = logging.getLogger(__name__)
 
+
 def newId(name):
     """ Generating an ID based on the given name.
 
@@ -39,11 +40,11 @@ ZCATE_ID = newId('zcate')
 
 
 TOPIC_SCHEMA = ['topic_id',
-        'topic',
-        'region',
-        'associate_id',
-        'zcategory',
-        'group']
+                'topic',
+                'region',
+                'associate_id',
+                'zcategory',
+                'group']
 
 
 def sampling_poi_topics(region, size, g_percentages):
@@ -74,17 +75,21 @@ def sampling_cate_topics(regions, size, g_percentages):
     """
     topics = pd.DataFrame(columns=TOPIC_SCHEMA)
     checkins = None
+    cate_set = set()
     for r in regions:
         kbase = KnowledgeBase.fromMongo(db.checkin, r['value'])
         if checkins is not None:
+            cate_set = kbase.checkins['cid'].unique()
             checkins = checkins.append(kbase.checkins, ignore_index=True)
         else:
+            cate_set &= kbase.checkins['cid'].unique()
             checkins = kbase.checkins
     _LOGGER.info('%d checkins loaded for cate_topics', len(checkins))
     checkins.drop_duplicates(cols=['pid', 'user'], inplace=True)
     for zcate, group in checkins.groupby('z_category'):
         cidgroup = [cid + '\t' + cname
-                    for cid, cname in group[['cid', 'category']].values]
+                    for cid, cname in group[['cid', 'category']].values
+                    if cid in cate_set]
         for gid, g in enumerate(stratified_samples(cidgroup,
                                                    g_percentages,
                                                    size / 9)):
@@ -100,10 +105,10 @@ def sampling_cate_topics(regions, size, g_percentages):
     for zcate, group in checkins.groupby('z_category'):
         for r in regions:
             topics = topics.append([{'topic_id': ZCATE_ID.next(),
-                                    'topic': zcate,
-                                    'region': r['name'],
-                                    'associate_id': group['zcid'].values[0],
-                                    'zcategory': zcate}])
+                                     'topic': zcate,
+                                     'region': r['name'],
+                                     'associate_id': group['zcid'].values[0],
+                                     'zcategory': zcate}])
     return topics
 
 

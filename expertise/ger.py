@@ -9,9 +9,11 @@ Description:
     Metrics for evaluating users geo expertise
 """
 
+import sys
 import logging
 import numpy as np
 import pandas as pd
+import pymongo
 import expertise.pandasmongo as pandasmongo
 from itertools import groupby
 import uuid
@@ -309,3 +311,26 @@ class GeoExpertRetrieval(object):
             except:
                 self._logger.error('Failed at %(topic_id)s', q)
         return rankings
+
+
+METRICS = [naive_metrics, recency_metrics, diversity_metrics]
+PROFILE_TYPES = [rankCheckinProfile, rankActiveDayProfile]
+
+
+def rankExperts(outfile, topicfile):
+    """ Running a set of queries to generate the self-evaluation survey
+        for geo-experts.
+    """
+    topics = pd.read_csv(topicfile)
+    checkin_collection = pymongo.MongoClient().geoexpert.checkin
+    survey = GeoExpertRetrieval('selfeval', checkin_collection)
+    rankings = survey.batchQuery(topics, METRICS, PROFILE_TYPES)
+    rankings.to_csv(outfile, float_format='%.3f', index=False,
+                    names=GeoExpertRetrieval.RANK_SCHEMA)
+
+
+if __name__ == '__main__':
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+    rankExperts(sys.argv[1], sys.argv[2])

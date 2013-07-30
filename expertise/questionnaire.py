@@ -18,23 +18,6 @@ import expertise.ger as ger
 from expertise.ger import GeoExpertRetrieval
 
 
-METRICS = [ger.naive_metrics, ger.recency_metrics, ger.diversity_metrics]
-
-PROFILE_TYPES = [ger.rankCheckinProfile, ger.rankActiveDayProfile]
-
-
-def rankExperts(outfile, topicfile):
-    """ Running a set of queries to generate the self-evaluation survey
-        for geo-experts.
-    """
-    topics = pd.read_csv(topicfile)
-    checkin_collection = pymongo.MongoClient().geoexpert.checkin
-    survey = GeoExpertRetrieval('selfeval', checkin_collection)
-    rankings = survey.batchQuery(topics, METRICS, PROFILE_TYPES)
-    rankings.to_csv(outfile, float_format='%.3f', index=False,
-                    names=GeoExpertRetrieval.RANK_SCHEMA)
-
-
 def merge_expertise(expertise_file, ranking_file):
     """ Merge estimated expertise for each expert
 
@@ -80,5 +63,4 @@ if __name__ == '__main__':
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
-    #rankExperts(sys.argv[1], sys.argv[2])
     merge_expertise(sys.argv[1], sys.argv[2])

@@ -75,7 +75,7 @@ def sampling_cate_topics(regions, size, g_percentages):
     for r in regions:
         kbase = KnowledgeBase.fromMongo(db.checkin, r['value'])
         if checkins is not None:
-            checkins.append(kbase.checkins, ignore_index=True)
+            checkins = checkins.append(kbase.checkins, ignore_index=True)
         else:
             checkins = kbase.checkins
     checkins.drop_duplicates(cols=['pid', 'user'], inplace=True)
@@ -109,7 +109,7 @@ def zcate_category(regions):
     for r in regions:
         kbase = KnowledgeBase.fromMongo(db.checkin, r['value'])
         if checkins is not None:
-            checkins.append(kbase.checkins, ignore_index=True)
+            checkins= checkins.append(kbase.checkins, ignore_index=True)
         else:
             checkins = kbase.checkins
     checkins.drop_duplicates(cols=['pid', 'user'], inplace=True)

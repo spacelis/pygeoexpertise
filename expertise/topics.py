@@ -10,6 +10,7 @@ Description:
 """
 
 import sys
+import logging
 import pandas as pd
 from pymongo import MongoClient
 from expertise.ger import KnowledgeBase
@@ -18,6 +19,7 @@ from stratified import stratified_samples
 
 db = MongoClient().geoexpert
 
+_LOGGER = logging.getLogger(__name__)
 
 def newId(name):
     """ Generating an ID based on the given name.
@@ -36,7 +38,7 @@ CATE_ID = newId('cate')
 ZCATE_ID = newId('zcate')
 
 
-COLS = ['topic_id',
+TOPIC_SCHEMA = ['topic_id',
         'topic',
         'region',
         'associate_id',
@@ -47,7 +49,7 @@ COLS = ['topic_id',
 def sampling_poi_topics(region, size, g_percentages):
     """ Sampling poi topics from the database
     """
-    topics = pd.DataFrame(columns=COLS)
+    topics = pd.DataFrame(columns=TOPIC_SCHEMA)
     kbase = KnowledgeBase.fromMongo(db.checkin, region['value'])
     kbase.checkins.drop_duplicates(cols=['pid', 'user'], inplace=True)
     for zcate, group in kbase.checkins.groupby('z_category'):
@@ -70,7 +72,7 @@ def sampling_poi_topics(region, size, g_percentages):
 def sampling_cate_topics(regions, size, g_percentages):
     """ Sampling poi topics from the database
     """
-    topics = pd.DataFrame(columns=COLS)
+    topics = pd.DataFrame(columns=TOPIC_SCHEMA)
     checkins = None
     for r in regions:
         kbase = KnowledgeBase.fromMongo(db.checkin, r['value'])
@@ -78,6 +80,7 @@ def sampling_cate_topics(regions, size, g_percentages):
             checkins = checkins.append(kbase.checkins, ignore_index=True)
         else:
             checkins = kbase.checkins
+    _LOGGER.info('%d checkins loaded for cate_topics', len(checkins))
     checkins.drop_duplicates(cols=['pid', 'user'], inplace=True)
     for zcate, group in checkins.groupby('z_category'):
         cidgroup = [cid + '\t' + cname
@@ -104,7 +107,7 @@ def zcate_category(regions):
     :returns: @todo
 
     """
-    topics = pd.DataFrame(columns=COLS)
+    topics = pd.DataFrame(columns=TOPIC_SCHEMA)
     checkins = None
     for r in regions:
         kbase = KnowledgeBase.fromMongo(db.checkin, r['value'])
@@ -112,6 +115,7 @@ def zcate_category(regions):
             checkins= checkins.append(kbase.checkins, ignore_index=True)
         else:
             checkins = kbase.checkins
+    _LOGGER.info('%d checkins loaded for cate_topics', len(checkins))
     checkins.drop_duplicates(cols=['pid', 'user'], inplace=True)
     for zcate, group in checkins.groupby('z_category'):
         for r in regions:
@@ -128,7 +132,7 @@ def gen_topics(outfile):
     :returns: @todo
 
     """
-    topic_set = pd.DataFrame(columns=COLS)
+    topic_set = pd.DataFrame(columns=TOPIC_SCHEMA)
     t = sampling_cate_topics(list(REGIONS.itervalues()), 18, [0.1, 0.9])
     topic_set = topic_set.append(t, ignore_index=True)
     t = zcate_category(list(REGIONS.itervalues()))
@@ -138,7 +142,10 @@ def gen_topics(outfile):
         topic_set = topic_set.append(t, ignore_index=True)
     with open(outfile, 'w') as fout:
         topic_set.to_csv(fout, index=False, na_rep='N/A',
-                         cols=COLS, encoding='utf-8')
+                         cols=TOPIC_SCHEMA, encoding='utf-8')
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
     gen_topics(sys.argv[1])

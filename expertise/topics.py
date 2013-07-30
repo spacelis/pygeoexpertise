@@ -80,10 +80,10 @@ def sampling_cate_topics(regions, size, g_percentages):
     for r in regions:
         kbase = KnowledgeBase.fromMongo(db.checkin, r['value'])
         if checkins is not None:
-            cate_set = kbase.checkins['cid'].unique()
+            cate_set = set(kbase.checkins['cid'].unique())
             checkins = checkins.append(kbase.checkins, ignore_index=True)
         else:
-            cate_set &= kbase.checkins['cid'].unique()
+            cate_set &= set(kbase.checkins['cid'].unique())
             checkins = kbase.checkins
     _LOGGER.info('%d checkins loaded for cate_topics', len(checkins))
     checkins.drop_duplicates(cols=['pid', 'user'], inplace=True)

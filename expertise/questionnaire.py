@@ -12,10 +12,7 @@ Description:
 import sys
 import json
 import logging
-import pymongo
 import pandas as pd
-import expertise.ger as ger
-from expertise.ger import GeoExpertRetrieval
 
 
 def merge_expertise(expertise_file, ranking_file):
@@ -36,7 +33,8 @@ def merge_expertise(expertise_file, ranking_file):
         :returns: @todo
 
         """
-        return [{'topic': t, 'region': r, 'topic_id': d}
+        return [{'topic': t if 'poi' in d else 'places in category of ' + t,
+                 'region': r, 'topic_id': d}
                 for t, r, d in
                 zip(gdf['topic'], gdf['region'], gdf['topic_id'])]
 
@@ -47,16 +45,18 @@ def merge_expertise(expertise_file, ranking_file):
         :returns: @todo
 
         """
-        return [{'region': t} for t in gdf['region']]
+        return [{'region': t} for t in gdf['region'].unique()]
 
     rankings = pd.read_csv(ranking_file)
-    rankings.drop_duplicates(cols=['user_screen_name', 'topic_id'], inplace=True)
+    rankings.drop_duplicates(cols=['user_screen_name', 'topic_id'],
+                             inplace=True)
     ue_list = list()
     for expert, df in rankings.groupby('user_screen_name'):
         r = json.dumps(merge_region(df))
         ue_list.append((expert, json.dumps(merge_topics(df)), r, r))
     ue_df = pd.DataFrame(ue_list, columns=EXPERTISE_SCHEMA)
-    ue_df.to_csv(expertise_file, index=False, names=EXPERTISE_SCHEMA)
+    ue_df.to_csv(expertise_file, index=False,
+                 cols=EXPERTISE_SCHEMA, encoding='utf-8')
 
 
 if __name__ == '__main__':

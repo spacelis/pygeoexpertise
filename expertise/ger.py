@@ -20,7 +20,7 @@ import uuid
 
 
 REGIONS = {
-    'CHICAGO': {'name': 'CHICAGO',
+    'Chicago': {'name': 'Chicago',
                 'value': {"place.bounding_box.coordinates.0.0.1":
                           {'$gt': 41.4986, '$lt': 42.0232},
                           "place.bounding_box.coordinates.0.0.0":

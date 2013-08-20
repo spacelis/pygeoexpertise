@@ -77,7 +77,7 @@ class CategoryTimeline(object):
         "Travel & Transport"
     ])}
 
-    def __init__(self, bin_size, refdate, bin_num=12):
+    def __init__(self, bin_size, refdate, bin_num=36):
         """ Constructing an object of to representing
 
         :bin_size: python's timedelta object
@@ -119,7 +119,7 @@ class POITimeline(object):
 
     """A checkin distribution over timeline for each category"""
 
-    def __init__(self, bin_size, refdate, topn=10, bin_num=12):
+    def __init__(self, bin_size, refdate, topn=10, bin_num=36):
         """ Constructing an object of to representing
 
         :bin_size: python's timedelta object

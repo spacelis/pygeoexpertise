@@ -111,7 +111,7 @@ class CategoryTimeline(object):
         :returns: @todo
 
         """
-        return {y: [x for x in self._timelines[CategoryTimeline.CATE[y]]]
+        return {y: [int(x) for x in self._timelines[CategoryTimeline.CATE[y]]]
                 for y in CategoryTimeline.CATE}
 
 
@@ -169,7 +169,7 @@ class POITimeline(object):
         return {k[0]: {'name': k[1],
                        'category': k[2],
                        'zcate': k[3],
-                       'timeline': [x for x in self._timelines[idx]]}
+                       'timeline': [int(x) for x in self._timelines[idx]]}
                 for idx, k in enumerate(keys)}
 
 
@@ -218,5 +218,5 @@ def test():
 
 
 if __name__ == '__main__':
-    #mkcsv(sys.argv[1])
-    test()
+    mkcsv(sys.argv[1])
+    #test()

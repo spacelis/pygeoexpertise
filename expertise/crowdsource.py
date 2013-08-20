@@ -132,8 +132,7 @@ class POITimeline(object):
         self._refdate = refdate
         self._topn = topn
         self._ref_o = refdate - bin_num * bin_size
-        self._timelines = np.zeros((len(CategoryTimeline.CATE), bin_num),
-                                   dtype=np.int)
+        self._timelines = np.zeros((topn, bin_num), dtype=np.int)
         self.poi_pool = dict()
 
     def append_ck(self, ck):
@@ -158,8 +157,8 @@ class POITimeline(object):
         :returns: @todo
 
         """
-        keys = sorted(self.poi_pool.iteritems(),
-                      key=lambda x: len(x[1]),
+        keys = sorted(self.poi_pool.iterkeys(),
+                      key=lambda x: len(self.poi_pool[x]),
                       reverse=True)[:self._topn]
         for idx, k in enumerate(keys):
             for t in self.poi_pool[k]:
@@ -216,4 +215,5 @@ def test():
 
 
 if __name__ == '__main__':
-    mkcsv(sys.argv[1])
+    #mkcsv(sys.argv[1])
+    test()

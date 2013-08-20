@@ -33,7 +33,7 @@ def merge_expertise(expertise_file, ranking_file):
         :returns: @todo
 
         """
-        return [{'topic': t if 'poi' in d else 'places in category of ' + t,
+        return [{'topic': t if 'poi' in d else 'places in category of "%s"' % (t, ),
                  'region': r, 'topic_id': d}
                 for t, r, d in
                 zip(gdf['topic'], gdf['region'], gdf['topic_id'])]

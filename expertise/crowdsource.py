@@ -166,7 +166,10 @@ class POITimeline(object):
                            / self._bin_size.total_seconds())
                 if 0 <= tick < self._bin_num:
                     self._timelines[idx][tick] += 1
-        return {k: [x for x in self._timelines[idx]]
+        return {k[0]: {'name': k[1],
+                       'category': k[2],
+                       'zcate': k[3],
+                       'timeline': [x for x in self._timelines[idx]]}
                 for idx, k in enumerate(keys)}
 
 

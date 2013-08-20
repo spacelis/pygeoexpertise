@@ -199,8 +199,10 @@ def mkcsv(csv_input):
         wr = csv.writer(sys.stdout)
         for row in csv.reader(fin):
             uname = row[0]
+            expertise = row[1]
             ckmap, catetl, poitl = user_profile(uname)
             wr.writerow([uname,
+                         expertise,
                          json.dumps(ckmap),
                          json.dumps(catetl),
                          json.dumps(poitl)])

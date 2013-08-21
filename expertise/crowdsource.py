@@ -47,8 +47,10 @@ class CheckinMap(object):
         if ck['place']['id'] not in self._pids:
             self._pids.add(ck['place']['id'])
             self._pool.append({
+                'id': ck['place']['id'],
                 'name': ck['place']['name'],
                 'cate': ck['place']['category']['zero_category_name'],
+                'cate_id': ck['place']['category']['id'],
                 'lat': ck['place']['bounding_box']['coordinates'][0][0][1],
                 'lng': ck['place']['bounding_box']['coordinates'][0][0][0]})
         return True
@@ -119,7 +121,7 @@ class POITimeline(object):
 
     """A checkin distribution over timeline for each category"""
 
-    def __init__(self, bin_size, refdate, topn=10, bin_num=36):
+    def __init__(self, bin_size, refdate, topn=10, bin_num=60):
         """ Constructing an object of to representing
 
         :bin_size: python's timedelta object

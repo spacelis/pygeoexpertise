@@ -79,7 +79,7 @@ class CategoryTimeline(object):
         "Travel & Transport"
     ])}
 
-    def __init__(self, bin_size, refdate, bin_num=36):
+    def __init__(self, bin_size, refdate, bin_num=60):
         """ Constructing an object of to representing
 
         :bin_size: python's timedelta object
@@ -90,7 +90,7 @@ class CategoryTimeline(object):
         self._bin_size = bin_size
         self._bin_num = bin_num
         self._refdate = refdate
-        self._ref_o = refdate - bin_num * bin_size
+        self._ref_o = refdate
         self._timelines = np.zeros((len(CategoryTimeline.CATE), bin_num),
                                    dtype=np.int)
 
@@ -133,7 +133,7 @@ class POITimeline(object):
         self._bin_num = bin_num
         self._refdate = refdate
         self._topn = topn
-        self._ref_o = refdate - bin_num * bin_size
+        self._ref_o = refdate
         self._timelines = np.zeros((topn, bin_num), dtype=np.int)
         self.poi_pool = dict()
 

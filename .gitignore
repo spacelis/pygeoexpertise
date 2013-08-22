@@ -4,6 +4,7 @@ script
 test
 *.yaml
 twitter.py
+apihelper.py
 tags
 
 # C extensions

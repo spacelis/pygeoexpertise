@@ -221,6 +221,62 @@ def test():
     print poitl
 
 
+# -------------------- Profile with only checkins ------------------
+def user_checkins(screen_name):
+    """ Return a list of simplified check-ins
+
+    :screen_name: @todo
+    :returns: @todo
+
+    """
+    cklist = list()
+    for ck in db.find({'user.screen_name': screen_name})\
+        .sort('created_at', 1).limit(1000):
+        cklist.append({
+            'id': ck['id'],
+            'created_at': ck['created_at'].strftime('%Y-%m-%dT%H:%M:%S'),
+            'text': ck['text'],
+            'place': {
+                'id': ck['place']['id'],
+                'name': ck['place']['name'],
+                'lat': ck['place']['bounding_box']['coordinates'][0][0][1],
+                'lng': ck['place']['bounding_box']['coordinates'][0][0][0],
+                'cate_id': ck['place']['category']['id'],
+                'category': ck['place']['category']['name'],
+                'zcate': ck['place']['category']['zero_category_name'],
+                'zcate_id': ck['place']['category']['zero_category'],
+            }
+        })
+    return cklist
+
+
+def mkcsv4ck(csv_input):
+    """@todo: Docstring for mkcsv4ck.
+
+    :csv_input: @todo
+    :returns: @todo
+
+    """
+    with open(csv_input, 'rb') as fin:
+        wr = csv.writer(sys.stdout)
+        for row in csv.reader(fin):
+            uname = row[0]
+            expertise = row[1]
+            wr.writerow([uname,
+                         expertise,
+                         json.dumps(user_checkins(uname))])
+
+
+def test2():
+    """@todo: Docstring for test.
+    :returns: @todo
+
+    """
+    print user_checkins('keniehuber')
+
+
 if __name__ == '__main__':
-    mkcsv(sys.argv[1])
-    #test()
+    # take an input as csv in format of screen_name,expertise,... with no
+    # headers
+    mkcsv4ck(sys.argv[1])
+    #test2()

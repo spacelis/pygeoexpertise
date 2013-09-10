@@ -62,6 +62,7 @@ def topic_detail(topic_id, topic, associate_id):
         related_to = [{
             'name': topic,
             'filter_name': topic,
+            'filter_type': 'z',
             'explanation': 'A top-level category'
         }]
     elif 'cate' in topic_id:
@@ -70,11 +71,13 @@ def topic_detail(topic_id, topic, associate_id):
             {
                 'name': topic,
                 'filter_name': topic,
+                'filter_type': 'c',
                 'explanation': 'A lower-level category'
             },
             {
                 'name': cate['zero_category_name'],
                 'filter_name': cate['zero_category_name'],
+                'filter_type': 'z',
                 'explanation': 'The top-level category that %s belongs to.'
                 % (topic, )
             }
@@ -85,6 +88,7 @@ def topic_detail(topic_id, topic, associate_id):
             {
                 'name': topic,
                 'filter_name': associate_id,
+                'filter_type': 'p',
                 'explanation':
                 'A place of interest belongs to category [%s, %s].'
                 % (poi['category']['name'],
@@ -93,12 +97,14 @@ def topic_detail(topic_id, topic, associate_id):
             {
                 'name': poi['category']['name'],
                 'filter_name': poi['category']['name'],
+                'filter_type': 'c',
                 'explanation': 'A lower category that %s belongs to.'
                 % (topic, )
             },
             {
                 'name': poi['category']['zero_category_name'],
                 'filter_name': poi['category']['zero_category_name'],
+                'filter_type': 'z',
                 'explanation': 'A top-level category that %s belongs to.'
                 % (topic, )
             }

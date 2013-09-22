@@ -18,6 +18,7 @@ import expertise.pandasmongo as pandasmongo
 from itertools import groupby
 import uuid
 
+# pylint: disable-msg=W0142
 
 REGIONS = {
     'Chicago': {'name': 'Chicago',
@@ -147,7 +148,7 @@ def rankActiveDayProfile(checkins, metrics, **kargs):
     return rank, scores
 
 
-def naive_metrics(profiles, cutoff=-1, **kargs):
+def naive_metrics(profiles, cutoff=-1, **_):
     """ using number of visitings / active days themselves for ranking
     """
     mrank = profiles['id'].count().order(ascending=False)
@@ -157,7 +158,7 @@ def naive_metrics(profiles, cutoff=-1, **kargs):
         return mrank.index.values, mrank.values
 
 
-def random_metrics(profiles, cutoff=-1, **kargs):
+def random_metrics(profiles, cutoff=-1, **_):
     """ As a random baseline
 
     :profiles: @todo
@@ -206,7 +207,7 @@ def _count_iter(it):
     return cnt
 
 
-def diversity_metrics(profiles, cutoff=-1, **kargs):
+def diversity_metrics(profiles, cutoff=-1, **_):
     """ A metrics boosting diverse visits
     """
     mrank = profiles['pid'].agg(
@@ -276,6 +277,7 @@ class GeoExpertRetrieval(object):
             'topic': query['topic']['name'],
             'user_screen_name': r,
             'rank_method': rank_method.__name__,
+            'profile_type': profile_type.__name__,
             'rank': i + 1,
             'score': s,
         } for i, (r, s) in enumerate(zip(rank, scores))])
@@ -307,7 +309,7 @@ class GeoExpertRetrieval(object):
                                'value': region_value}}
 
     RANK_SCHEMA = ['topic_id', 'rank', 'user_screen_name', 'score',
-                   'rank_method', 'region', 'topic', 'rank_id']
+                   'rank_method', 'profile_type' 'region', 'topic', 'rank_id']
 
     def batchQuery(self, topics, metrics, profile_type):
         """ batchquery
@@ -327,7 +329,7 @@ class GeoExpertRetrieval(object):
                     for pf_type in profile_type:
                         rank = self.rankExperts(q, mtc, pf_type, 5)
                         rankings = rankings.append(rank)
-            except ValueError as e:
+            except ValueError:
                 self._logger.exception('Failed at %(topic_id)s', q)
         return rankings
 
@@ -336,7 +338,7 @@ METRICS = [naive_metrics, recency_metrics, diversity_metrics, random_metrics]
 PROFILE_TYPES = [rankCheckinProfile, rankActiveDayProfile]
 
 
-def rankExperts(outfile, topicfile):
+def run_experiment(outfile, topicfile):
     """ Running a set of queries to generate the self-evaluation survey
         for geo-experts.
     """
@@ -352,4 +354,6 @@ if __name__ == '__main__':
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
-    rankExperts(sys.argv[1], sys.argv[2])
+    if len(sys.argv) < 3:
+        print >> sys.stderr, 'Usage: ger.py <output> <topics>'
+    run_experiment(sys.argv[1], sys.argv[2])

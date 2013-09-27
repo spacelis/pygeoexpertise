@@ -309,7 +309,7 @@ class GeoExpertRetrieval(object):
                                'value': region_value}}
 
     RANK_SCHEMA = ['topic_id', 'rank', 'user_screen_name', 'score',
-                   'rank_method', 'profile_type' 'region', 'topic', 'rank_id']
+                   'rank_method', 'profile_type', 'region', 'topic', 'rank_id']
 
     def batchQuery(self, topics, metrics, profile_type):
         """ batchquery

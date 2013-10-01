@@ -18,7 +18,6 @@ import expertise.pandasmongo as pandasmongo
 from itertools import groupby
 import uuid
 
-# pylint: disable-msg=W0142
 
 REGIONS = {
     'Chicago': {'name': 'Chicago',
@@ -311,7 +310,7 @@ class GeoExpertRetrieval(object):
     RANK_SCHEMA = ['topic_id', 'rank', 'user_screen_name', 'score',
                    'rank_method', 'profile_type', 'region', 'topic', 'rank_id']
 
-    def batchQuery(self, topics, metrics, profile_type):
+    def batchQuery(self, topics, metrics, profile_type, cutoff=5):
         """ batchquery
         """
         rankings = pd.DataFrame(columns=GeoExpertRetrieval.RANK_SCHEMA)
@@ -327,7 +326,7 @@ class GeoExpertRetrieval(object):
                     if ('poi' in t['topic_id']) and mtc == diversity_metrics:
                         continue
                     for pf_type in profile_type:
-                        rank = self.rankExperts(q, mtc, pf_type, 5)
+                        rank = self.rankExperts(q, mtc, pf_type, cutoff)
                         rankings = rankings.append(rank)
             except ValueError:
                 self._logger.exception('Failed at %(topic_id)s', q)
@@ -345,7 +344,9 @@ def run_experiment(outfile, topicfile):
     topics = pd.read_csv(topicfile)
     checkin_collection = pymongo.MongoClient().geoexpert.checkin
     survey = GeoExpertRetrieval('selfeval', checkin_collection)
-    rankings = survey.batchQuery(topics, METRICS, PROFILE_TYPES)
+
+    # Do batch ranking with all the parameters
+    rankings = survey.batchQuery(topics, METRICS, PROFILE_TYPES, 30)
     rankings.to_csv(outfile, float_format='%.3f', index=False,
                     names=GeoExpertRetrieval.RANK_SCHEMA)
 

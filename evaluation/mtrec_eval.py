@@ -76,7 +76,7 @@ def multi_trec_eval(qrel, rankres):
                        .set_index('_method', '_profile', '_topic'))
 
     erdf = pd.concat(evalres)
-    erdf.to_csv(sys.stdout, index=False)
+    return erdf
 
 
 def main():
@@ -88,7 +88,7 @@ def main():
     rankres = sys.argv[2]
     assert os.path.exists(qrel)
     assert os.path.exists(rankres)
-    multi_trec_eval(qrel, rankres)
+    multi_trec_eval(qrel, rankres).to_csv(sys.stdout, index=False)
 
 if __name__ == '__main__':
     main()

@@ -15,7 +15,7 @@ import dateutil
 import pandas as pd
 
 
-from anno_merge import max_vote_agreement
+from anno_merge import take_most_freq
 
 
 def toQrel(judgement_df):
@@ -97,8 +97,8 @@ def transform(jfile):
         judgement.drop_duplicates(['judge_id', 'candidate'],
                                   take_last=take_last, inplace=True)
         print >> sys.stderr, 'Drop Duplication TAKE_LAST =', take_last
-        aggrement = max_vote_agreement(
-            judgement[['topic_id', 'candidate', 'score']])
+        aggrement = take_most_freq(
+            judgement[['topic_id', 'candidate', 'score']], 'score')
         toQrel(aggrement)
 
 

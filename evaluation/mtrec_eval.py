@@ -18,7 +18,14 @@ from subprocess import check_output
 from itertools import groupby
 
 SEP = re.compile(r'\s+')
-TREC_EVAL_CMD = os.path.join(os.path.dirname(__file__), 'trec_eval')
+TREC_EVAL_CMD = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)),
+    'trec_eval')
+if os.path.exists(TREC_EVAL_CMD):
+    print >> sys.stderr, 'Use: ' + TREC_EVAL_CMD
+else:
+    print >> sys.stderr, 'Error: trec_eval Not Found'
+    sys.exit(-1)
 TREC_EVAL_M = ['P.5', 'map']
 
 
@@ -60,7 +67,7 @@ def multi_trec_eval(qrel, rankres):
         with NamedTemporaryFile(delete=True) as fout:
             for row in group.iterrows():
                 r = row[1]
-                print >> fout, r['topic_id'], 'Q0', r['user_screen_name'], \
+                print >> fout, r['topic_id'], 'Q0', r['candidate'], \
                     r['rank'], r['score'], \
                     r['rank_method'] + "_" + r['profile_type']
 
@@ -72,8 +79,8 @@ def multi_trec_eval(qrel, rankres):
                 r['rank_method'],
                 r['profile_type'])
         evalres.append(pd.DataFrame
-                       .from_records(list(scores))
-                       .set_index('_method', '_profile', '_topic'))
+                       .from_records(list(scores)))
+                       #.set_index('_method', '_profile', '_topic'))
 
     erdf = pd.concat(evalres)
     return erdf
@@ -86,9 +93,20 @@ def main():
     """
     qrel = sys.argv[1]
     rankres = sys.argv[2]
+    include_topic = None
+    if len(sys.argv) > 3:
+        with open(sys.argv[3]) as fin:
+            ts = {'topic_id': [l.strip() for l in fin]}
+            include_topic = pd.DataFrame(ts)
     assert os.path.exists(qrel)
     assert os.path.exists(rankres)
-    multi_trec_eval(qrel, rankres).to_csv(sys.stdout, index=False)
+    evalres = multi_trec_eval(qrel, rankres)
+    if include_topic:
+        pd.merge(evalres, include_topic,
+                 left_on='_topic', right_on='topic_id',
+                 how='inner').to_csv(sys.stdout, index=False)
+    else:
+        multi_trec_eval(qrel, rankres).to_csv(sys.stdout, index=False)
 
 if __name__ == '__main__':
     main()

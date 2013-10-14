@@ -33,7 +33,7 @@ def toQrel(judgement_df):
 
 
 def normalize(judgement_df):
-    """ Normalize the dataframe column
+    """ Normalize the dataframe columns, e.g. time
 
     :judgement_df: The judgement_df need to normalize
     :returns: @todo
@@ -41,6 +41,7 @@ def normalize(judgement_df):
     """
     judgement_df['created_at'] = judgement_df['created_at']\
         .apply(dateutil.parser.parse)
+    judgement_df.sort(['created_at'], inplace=True)
 
 
 def expand_field(df, fieldname, keyname, valname):
@@ -76,7 +77,9 @@ def transform(jfile, tfile):
         judgement = pd.DataFrame.from_records(
             [json.loads(line) for line in fin])
         normalize(judgement)
-        judgement.drop_duplicates(['judge_id', 'candidate'])
+        judgement.drop_duplicates(['judge_id', 'candidate'],
+                                  take_last=False, inplace=True)
+        print >> sys.stderr, 'Ttaking last record of conflicts =', take_last
         judgement = expand_field(judgement, 'scores', 'topic_id', 'score')
         judgement = pd.merge(judgement, topics,
                              left_on='topic_id', right_on='topic_id',

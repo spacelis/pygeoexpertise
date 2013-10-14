@@ -73,7 +73,6 @@ def select(df, tfile):
 
     """
     topics = pd.read_csv(tfile)
-    df = expand_field(df, 'scores', 'topic_id', 'score')
     df = pd.merge(df, topics,
                   left_on='topic_id', right_on='topic_id',
                   how='left', suffixes=('', '_t'))
@@ -94,6 +93,7 @@ def transform(jfile):
         judgement = pd.DataFrame.from_records(
             [json.loads(line) for line in fin])
         normalize(judgement)
+        judgement = expand_field(judgement, 'scores', 'topic_id', 'score')
         judgement.drop_duplicates(['judge_id', 'candidate'],
                                   take_last=take_last, inplace=True)
         print >> sys.stderr, 'Drop Duplication TAKE_LAST =', take_last

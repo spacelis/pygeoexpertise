@@ -22,7 +22,7 @@ TREC_EVAL_CMD = os.path.join(
     os.path.dirname(os.path.realpath(__file__)),
     'trec_eval')
 if os.path.exists(TREC_EVAL_CMD):
-    print >> sys.stderr, 'Use: ' + TREC_EVAL_CMD
+    print >> sys.stderr, 'trec_eval = ' + TREC_EVAL_CMD
 else:
     print >> sys.stderr, 'Error: trec_eval Not Found'
     sys.exit(-1)
@@ -109,4 +109,8 @@ def main():
         multi_trec_eval(qrel, rankres).to_csv(sys.stdout, index=False)
 
 if __name__ == '__main__':
+    if len(sys.argv) < 3:
+        print >> sys.stderr, \
+            'Usage: mtrec_eval <qrel> <rankres.csv> [<topics>]'
+        sys.exit(-1)
     main()

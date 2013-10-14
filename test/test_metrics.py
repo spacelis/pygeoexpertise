@@ -9,7 +9,7 @@ Description:
 """
 
 import pymongo as mg
-import expertise.metrics as mt
+import expertise.ger as mt
 
 
 def test_fromMongo():

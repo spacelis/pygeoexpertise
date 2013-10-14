@@ -136,6 +136,8 @@ def rankCheckinProfile(checkins, metrics, **kargs):
 
 def rankActiveDayProfile(checkins, metrics, **kargs):
     """ Rank the profiles based on active days
+
+        All check-ins on the same day are considered as only one check-in
     """
     day_profiles = checkins.drop_duplicates(
         cols=['user',

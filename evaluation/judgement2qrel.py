@@ -64,32 +64,45 @@ def expand_field(df, fieldname, keyname, valname):
     return newdf
 
 
-def transform(jfile, tfile):
-    """Convert judgement.ljson into qrel and print it to stdout
+def select(df, tfile):
+    """ Select a part of judgement to be output
 
-    :jfile: judgement.ljson filename
+    :df: @todo
     :tfile: topics csv filename
-    :returns: None
+    :returns: @todo
 
     """
     topics = pd.read_csv(tfile)
+    df = expand_field(df, 'scores', 'topic_id', 'score')
+    df = pd.merge(df, topics,
+                  left_on='topic_id', right_on='topic_id',
+                  how='left', suffixes=('', '_t'))
+    # FIXME make the condition generic from parameters
+    selected = df[df['group'] == 0]
+    return selected
+
+
+def transform(jfile):
+    """Convert judgement.ljson into qrel and print it to stdout
+
+    :jfile: judgement.ljson filename
+    :returns: None
+
+    """
+    take_last = False
     with open(jfile) as fin:
         judgement = pd.DataFrame.from_records(
             [json.loads(line) for line in fin])
         normalize(judgement)
         judgement.drop_duplicates(['judge_id', 'candidate'],
-                                  take_last=False, inplace=True)
-        print >> sys.stderr, 'Ttaking last record of conflicts =', take_last
-        judgement = expand_field(judgement, 'scores', 'topic_id', 'score')
-        judgement = pd.merge(judgement, topics,
-                             left_on='topic_id', right_on='topic_id',
-                             how='left', suffixes=('', '_t'))
-        # FIXME make the condition generic from parameters
-        selected = judgement[judgement['group'] == 0]
+                                  take_last=take_last, inplace=True)
+        print >> sys.stderr, 'Drop Duplication TAKE_LAST =', take_last
         aggrement = max_vote_agreement(
-            selected[['topic_id', 'candidate', 'score']])
+            judgement[['topic_id', 'candidate', 'score']])
         toQrel(aggrement)
 
 
 if __name__ == '__main__':
-    transform(sys.argv[1], sys.argv[2])
+    if len(sys.argv) < 2:
+        print 'Usage: judgement2qrel <jsonfile> <topics>'
+    transform(sys.argv[1])

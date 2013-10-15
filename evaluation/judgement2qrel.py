@@ -11,11 +11,10 @@ Description:
 
 import sys
 import json
-import dateutil
 import pandas as pd
 
 
-from anno_merge import take_most_freq
+from qrel_tools import take_most_freq, take_avg, normalize, expand_field
 
 
 def toQrel(judgement_df):
@@ -28,40 +27,7 @@ def toQrel(judgement_df):
     for _, (topic_id, score, candidate) in \
             judgement_df[['topic_id', 'score', 'candidate']].iterrows():
         score = int(score)
-        if score >= 0:
-            print topic_id, 'Q0', candidate, score
-
-
-def normalize(judgement_df):
-    """ Normalize the dataframe columns, e.g. time
-
-    :judgement_df: The judgement_df need to normalize
-    :returns: @todo
-
-    """
-    judgement_df['created_at'] = judgement_df['created_at']\
-        .apply(dateutil.parser.parse)
-    judgement_df.sort(['created_at'], inplace=True)
-
-
-def expand_field(df, fieldname, keyname, valname):
-    """ Expand a field which is a dict()
-
-    :df: The dataframe
-    :fieldname: The name of field to expand
-    :keyname: The column name used for keys in new DF
-    :valname: the column name used for vals in new DF
-    :returns: @todo
-
-    """
-    field_df = pd.concat([pd.DataFrame.from_records(
-        [{keyname: k, valname: v}], index=[ix])
-        for (ix, cell) in df[fieldname].iteritems()
-        for k, v in cell.iteritems()])
-    newdf = pd.merge(df, field_df,
-                     left_index=True, right_index=True,
-                     how='right')
-    return newdf
+        print topic_id, 'Q0', candidate, score
 
 
 def select(df, tfile):
@@ -92,12 +58,10 @@ def transform(jfile):
     with open(jfile) as fin:
         judgement = pd.DataFrame.from_records(
             [json.loads(line) for line in fin])
-        normalize(judgement)
         judgement = expand_field(judgement, 'scores', 'topic_id', 'score')
-        judgement.drop_duplicates(['judge_id', 'candidate'],
-                                  take_last=take_last, inplace=True)
+        normalize(judgement)
         print >> sys.stderr, 'Drop Duplication TAKE_LAST =', take_last
-        aggrement = take_most_freq(
+        aggrement = take_avg(
             judgement[['topic_id', 'candidate', 'score']], 'score')
         toQrel(aggrement)
 

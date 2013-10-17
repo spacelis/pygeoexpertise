@@ -43,7 +43,7 @@ def filter_topic(df, pop=0):
     return df[df['group'] == pop]
 
 
-def take_most_freq(jd, col):
+def major_vote(jd, col):
     """ Generate agreement by max vote
         :jd: Dataframe[candidate, topic_id, score]
         :return: Dataframe with aggreed judgement
@@ -54,7 +54,7 @@ def take_most_freq(jd, col):
                       jd.groupby(['candidate', 'topic_id'])])
 
 
-def take_avg(jd, col):
+def avg_vote(jd, col):
     """ Generate agreement by averaging votes
         :jd: Dataframe[candidate, topic_id, score]
         :return: Dataframe with aggreed judgement
@@ -77,7 +77,24 @@ def load_judgement(ljson):
 
     """
     with open(ljson) as fin:
-        return pd.DataFrame.from_records([json.loads(l) for l in fin])
+        df = pd.DataFrame.from_records([json.loads(l) for l in fin])
+        df = expand_field(df, 'scores', 'topic_id', 'score')
+        del df['scores']
+        df = normalize(df)
+        return df
+
+
+def despammer(filename):
+    """ return a function check whether the judge is blacklisted
+
+    :filename: @todo
+    :returns: @todo
+
+    """
+    with open(filename) as fin:
+        blacklist = [l.strip() for l in fin]
+
+    return lambda x: x not in blacklist
 
 
 def normalize(judgement_df):
@@ -87,8 +104,9 @@ def normalize(judgement_df):
     :returns: @todo
 
     """
-    judgement_df['created_at'] = judgement_df['created_at']\
-        .apply(dateutil.parser.parse)
+    if judgement_df.created_at.dtype == str:
+        judgement_df['created_at'] = judgement_df['created_at']\
+            .apply(dateutil.parser.parse)
     judgement_df.sort(['created_at'], inplace=True)
     judgement_df.score = judgement_df.score.apply(int)
     judgement_df = judgement_df[judgement_df.score > 0]
@@ -114,6 +132,7 @@ def expand_field(df, fieldname, keyname, valname):
     newdf = pd.merge(df, field_df,
                      left_index=True, right_index=True,
                      how='right')
+    del newdf[fieldname]
     return newdf
 
 

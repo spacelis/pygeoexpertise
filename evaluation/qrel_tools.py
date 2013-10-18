@@ -110,8 +110,9 @@ def normalize(judgement_df):
     judgement_df.sort(['created_at'], inplace=True)
     judgement_df.score = judgement_df.score.apply(int)
     judgement_df = judgement_df[judgement_df.score > 0]
+    judgement_df.sort(['created_at'])
     judgement_df.drop_duplicates(['judge_id', 'candidate'],
-                                 take_last=True, inplace=True)
+                                 take_last=False, inplace=True)
     return judgement_df
 
 
@@ -136,27 +137,30 @@ def expand_field(df, fieldname, keyname, valname):
     return newdf
 
 
-def cohen_kappa(jdf1, jdf2):
+def cohen_kappa(jdf1, jdf2, join_on, field):
     """ Calculate the Cohen's kappa for inter-rater aggreement
 
         http://en.wikipedia.org/wiki/Cohen's_kappa
 
     :jdf1: the judgement from rater 1
     :jdf2: the judgement from rater 2
+    :join_on: A list of columns used for joining two tables
     :field: The field holding judgement scores
     :returns: @todo
 
     """
+    field_1 = field + '_1'
+    field_2 = field + '_2'
     jpair = pd.merge(jdf1, jdf2,
-                     left_on=['candidate', 'topic_id'],
-                     right_on=['candidate', 'topic_id'],
+                     left_on=join_on,
+                     right_on=join_on,
                      how='inner', suffixes=['_1', '_2'])
-    s = np.zeros((jpair['score_1'].nunique(),
-                  jpair['score_2'].nunique()))
+    s = np.zeros((jpair[field_1].nunique(),
+                  jpair[field_2].nunique()))
     score_map = {s: p for p, s in enumerate(
-        set(jpair['score_1'].unique()) | set(jpair['score_2'].unique()))}
+        set(jpair[field_1].unique()) | set(jpair[field_2].unique()))}
     for _, p in jpair.iterrows():
-        s[score_map[p['score_1']], score_map[p['score_2']]] += 1
+        s[score_map[p[field_1]], score_map[p[field_2]]] += 1
 
     return _cohen_kappa(s)
 

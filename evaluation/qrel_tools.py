@@ -155,14 +155,14 @@ def cohen_kappa(jdf1, jdf2, join_on, field):
                      left_on=join_on,
                      right_on=join_on,
                      how='inner', suffixes=['_1', '_2'])
-    s = np.zeros((jpair[field_1].nunique(),
-                  jpair[field_2].nunique()))
+    n = len(set(jpair[field_1] + jpair[field_2]))
+    s = np.zeros((n, n))
     score_map = {s: p for p, s in enumerate(
         set(jpair[field_1].unique()) | set(jpair[field_2].unique()))}
     for _, p in jpair.iterrows():
         s[score_map[p[field_1]], score_map[p[field_2]]] += 1
 
-    return _cohen_kappa(s)
+    return _cohen_kappa(s), len(jpair)
 
 
 def _cohen_kappa(mat):

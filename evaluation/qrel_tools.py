@@ -79,7 +79,6 @@ def load_judgement(ljson):
     with open(ljson) as fin:
         df = pd.DataFrame.from_records([json.loads(l) for l in fin])
         df = expand_field(df, 'scores', 'topic_id', 'score')
-        del df['scores']
         df = normalize(df)
         return df
 

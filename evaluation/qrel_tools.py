@@ -15,6 +15,7 @@ from collections import Counter
 
 import pandas as pd
 import numpy as np
+from numpy import dtype
 import json
 
 
@@ -103,13 +104,22 @@ def normalize(judgement_df):
     :returns: @todo
 
     """
-    if judgement_df.created_at.dtype == str:
+    if judgement_df.created_at.dtype != dtype('<M8[ns]'):
         judgement_df['created_at'] = judgement_df['created_at']\
             .apply(dateutil.parser.parse)
-    judgement_df.sort(['created_at'], inplace=True)
     judgement_df.score = judgement_df.score.apply(int)
+    judgement_df.sort(['created_at'], inplace=True)
+    return judgement_df
+
+
+def distill(judgement_df):
+    """ Remove scores that are below 0
+
+    :judgement_df: The dataframe containing judgement
+    :returns: @todo
+
+    """
     judgement_df = judgement_df[judgement_df.score > 0]
-    judgement_df.sort(['created_at'])
     judgement_df.drop_duplicates(['judge_id', 'candidate'],
                                  take_last=False, inplace=True)
     return judgement_df

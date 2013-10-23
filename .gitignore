@@ -1,7 +1,6 @@
 .**
 *.py[cod]
 script
-test
 *.yaml
 twitter.py
 apihelper.py

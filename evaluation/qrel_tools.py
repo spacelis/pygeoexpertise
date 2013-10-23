@@ -44,15 +44,20 @@ def filter_topic(df, pop=0):
     return df[df['group'] == pop]
 
 
-def major_vote(jd, col):
+def major_vote(jd, col, on_cols=None):
     """ Generate agreement by max vote
         :jd: Dataframe[candidate, topic_id, score]
+        :on_cols: (default=['candidate', 'topic_id'])
+                  The columns labeling scores
         :return: Dataframe with aggreed judgement
     """
+    if not on_cols:
+        on_cols = ['candidate', 'topic_id']
+
     max_vote = lambda df: \
         df[df.score == Counter(df[col].values).most_common(1)[0][0]].head(1)
     return pd.concat([max_vote(g) for _, g in
-                      jd.groupby(['candidate', 'topic_id'])])
+                      jd.groupby(on_cols)])
 
 
 def avg_vote(jd, col):
@@ -146,7 +151,32 @@ def expand_field(df, fieldname, keyname, valname):
     return newdf
 
 
-def cohen_kappa(jdf1, jdf2, join_on, field):
+def cohen_kappa_score(arr1, arr2, extra_info=False):
+    """ Calculate cohen_kappa from two array
+
+    :arr1: The first array of scores
+    :arr2: The second array of scores
+    :extra_info: (default: False) Whether return more info and pack as a tuple
+    :returns: kappa [, (total, Pa, Pe) ]
+
+    """
+    score_map = {s: p for p, s in enumerate(set(list(arr1) + list(arr2)))}
+    dist = np.zeros((len(score_map), len(score_map)))
+    for x, y in zip(arr1, arr2):
+        dist[score_map[x], score_map[y]] += 1
+
+    total = float(np.sum(dist.flatten()))
+    Pa = np.trace(dist) / total
+    Pu = np.sum(dist, axis=0) / total
+    Pv = np.sum(dist, axis=1) / total
+    Pe = np.dot(Pu, Pv)
+    if extra_info:
+        return (Pa - Pe) / (1 - Pe), (total, Pa, Pe)
+    else:
+        return (Pa - Pe) / (1 - Pe)
+
+
+def cohen_kappa_df(jdf1, jdf2, join_on, field):
     """ Calculate the Cohen's kappa for inter-rater aggreement
 
         http://en.wikipedia.org/wiki/Cohen's_kappa
@@ -155,7 +185,7 @@ def cohen_kappa(jdf1, jdf2, join_on, field):
     :jdf2: the judgement from rater 2
     :join_on: A list of columns used for joining two tables
     :field: The field holding judgement scores
-    :returns: @todo
+    :returns: Cohen Kappa of interrater judgement
 
     """
     field_1 = field + '_1'
@@ -164,26 +194,5 @@ def cohen_kappa(jdf1, jdf2, join_on, field):
                      left_on=join_on,
                      right_on=join_on,
                      how='inner', suffixes=['_1', '_2'])
-    n = len(set(jpair[field_1] + jpair[field_2]))
-    s = np.zeros((n, n))
-    score_map = {s: p for p, s in enumerate(
-        set(jpair[field_1].unique()) | set(jpair[field_2].unique()))}
-    for _, p in jpair.iterrows():
-        s[score_map[p[field_1]], score_map[p[field_2]]] += 1
-
-    return _cohen_kappa(s), len(jpair)
-
-
-def _cohen_kappa(mat):
-    """ Calculate kappa from matrix
-
-    :mat: @todo
-    :returns: @todo
-
-    """
-    total = float(np.sum(mat.flatten()))
-    Pa = np.trace(mat) / total
-    Pu = np.sum(mat, axis=0) / total
-    Pv = np.sum(mat, axis=1) / total
-    Pe = np.dot(Pu, Pv)
-    return (Pa - Pe) / (1 - Pe)
+    return cohen_kappa_score(jpair[field_1].values,
+                             jpair[field_2].values)

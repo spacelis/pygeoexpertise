@@ -10,8 +10,10 @@ Description:
 """
 
 
+import csv
 import dateutil
 from collections import Counter
+from collections import defaultdict
 
 import pandas as pd
 import numpy as np
@@ -196,3 +198,37 @@ def cohen_kappa_df(jdf1, jdf2, join_on, field):
                      how='inner', suffixes=['_1', '_2'])
     return cohen_kappa_score(jpair[field_1].values,
                              jpair[field_2].values)
+
+
+def csv_zip_rows(csv_file, groupers):
+    """ Zip each pair of consequent rows into a fixed schema by
+        grouping dynamic headers into json objects
+
+    :csv_file: @todo
+    :groupers: @todo
+    :returns: @todo
+
+    """
+    def ingrouper(k):
+        """ embedded func for checking whether a key is in a group"""
+        for g, gf in groupers.iteritems():
+            if gf(k):
+                return g
+        return None
+
+    with open(csv_file, 'rb') as fin:
+        r = csv.reader(fin)
+        try:
+            while True:
+                h = r.next()
+                l = r.next()
+                jdict = defaultdict(dict)
+                for k, v in zip(h, l):
+                    g = ingrouper(k)
+                    if g:
+                        jdict[g][k] = v
+                    else:
+                        jdict[k] = v
+                yield jdict
+        except StopIteration:
+            pass

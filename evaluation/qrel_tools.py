@@ -142,10 +142,14 @@ def expand_field(df, fieldname, keyname, valname):
     :returns: @todo
 
     """
+    if isinstance(df[fieldname], dict):
+        celliter = lambda cell: cell.iteritems()
+    else:
+        celliter = lambda cell: json.loads(cell).iteritems()
     field_df = pd.concat([pd.DataFrame.from_records(
         [{keyname: k, valname: int(v)}], index=[ix])
         for (ix, cell) in df[fieldname].iteritems()
-        for k, v in cell.iteritems()])
+        for k, v in celliter(cell)])
     newdf = pd.merge(df, field_df,
                      left_index=True, right_index=True,
                      how='right')

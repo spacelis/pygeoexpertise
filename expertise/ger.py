@@ -263,7 +263,7 @@ class GeoExpertRetrieval(object):
         """
         return uuid.uuid4()
 
-    def rankExperts(self, query, rank_method, profile_type, cutoff=10):
+    def rankExperts(self, query, rank_method, profile_type, cutoff=5):
         """ Return a set of parameters for setting up questionnaires
             :param query: a dict() object holding topic and region for query
                 {topic:{name:, value:}, region:{name:, value:} }

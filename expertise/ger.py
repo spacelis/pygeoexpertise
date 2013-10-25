@@ -10,6 +10,7 @@ Description:
 """
 
 import sys
+import argparse
 import logging
 import numpy as np
 import pandas as pd
@@ -39,7 +40,13 @@ REGIONS = {
                       'value': {"place.bounding_box.coordinates.0.0.1":
                                 {'$gt': 37.7025, '$lt': 37.8045},
                                 "place.bounding_box.coordinates.0.0.0":
-                                {'$gt': -122.5349, '$lt': -122.3546}}}}
+                                {'$gt': -122.5349, '$lt': -122.3546}}},
+    'US': {'name': 'US',
+           'value': {'place.bounding_box.coordinates.0.0.1':
+                     {'$gt': 24.5210, '$lt': 49.3845},
+                     'place.bounding_box.coordinates.0.0.0':
+                     {'$gt': -124.7625, '$lt': -66.9326}}}
+}
 
 
 class KnowledgeBase(object):
@@ -285,29 +292,39 @@ class GeoExpertRetrieval(object):
         return ranking
 
     def formatQuery(self, topic_id, name, ident, region_name, region_value,
-                    is_cate=False):
+                    topic_type):
         """ Format query
 
-        :topic_id: @todo
-        :name: @todo
-        :ident: @todo
-        :region_name: @todo
-        :is_cate: @todo
-        :returns: @todo
-
+        :topic_id: The id of the topic
+        :name: the text representation of the topic
+        :ident: The reference identifier for the queried topic
+        :region_name: The name of the region ref: REGIONS
+        :topic_type: The type of the topic['z'='zcate', 'c'='cate', p='poi']
+        :returns: The dict of the formated query
         """
-        if is_cate:
+        if topic_type == 'c':
             return {'topic_id': topic_id,
-                    'topic': {'name': name,
-                              'value': {'place.category.id': ident}},
+                    'topic': {
+                        'name': name,
+                        'value': {'place.category.id': ident}},
+                    'region': {
+                        'name': region_name,
+                        'value': region_value}}
+        elif topic_type == 'z':
+            return {'topic_id': topic_id,
+                    'topic': {
+                        'name': name,
+                        'value': {'place.category.zero_category': ident}},
                     'region': {'name': region_name,
                                'value': region_value}}
-        else:
+        elif topic_type == 'p':
             return {'topic_id': topic_id,
-                    'topic': {'name': name,
-                              'value': {'place.id': ident}},
-                    'region': {'name': region_name,
-                               'value': region_value}}
+                    'topic': {
+                        'name': name,
+                        'value': {'place.id': ident}},
+                    'region': {
+                        'name': region_name,
+                        'value': region_value}}
 
     RANK_SCHEMA = ['topic_id', 'rank', 'user_screen_name', 'score',
                    'rank_method', 'profile_type', 'region', 'topic', 'rank_id']
@@ -321,7 +338,7 @@ class GeoExpertRetrieval(object):
             q = self.formatQuery(t['topic_id'], t['topic'],
                                  t['associate_id'], t['region'],
                                  REGIONS[t['region']]['value'],
-                                 'cate' in t['topic_id'])
+                                 t['topic_id'][0])
             self._logger.info('Processing %(topic_id)s...', q)
             try:
                 for mtc in metrics:
@@ -339,12 +356,12 @@ METRICS = [naive_metrics, recency_metrics, diversity_metrics, random_metrics]
 PROFILE_TYPES = [rankCheckinProfile, rankActiveDayProfile]
 
 
-def run_experiment(outfile, topicfile):
+def run_experiment(outfile, topicfile, db='geoexpert', coll='checkin'):
     """ Running a set of queries to generate the self-evaluation survey
         for geo-experts.
     """
     topics = pd.read_csv(topicfile)
-    checkin_collection = pymongo.MongoClient().geoexpert.checkin
+    checkin_collection = pymongo.MongoClient()[db][coll]
     survey = GeoExpertRetrieval('selfeval', checkin_collection)
 
     # Do batch ranking with all the parameters
@@ -353,10 +370,37 @@ def run_experiment(outfile, topicfile):
                     names=GeoExpertRetrieval.RANK_SCHEMA)
 
 
-if __name__ == '__main__':
+def console():
+    """ An interface for console invoke
+    """
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
-    if len(sys.argv) < 3:
-        print >> sys.stderr, 'Usage: ger.py <output> <topics>'
-    run_experiment(sys.argv[1], sys.argv[2])
+
+    parser = argparse.ArgumentParser(
+        description='Geo-expertise retrieval is a IR system focus on'
+        'the geolocation information. Specifically, it help users search '
+        'for knowledgeable users on social networks w.r.t. location '
+        'information',
+        epilog='Wen.Li@tudelft.nl 2013')
+    parser.add_argument(
+        '-o', '--output', dest='output', action='store',
+        metavar='FILE', default=sys.stdout,
+        help='Using the file as the output instead of STDIN.')
+    parser.add_argument(
+        '-d', '--db', dest='db', action='store',
+        metavar='DB', default='geoexpert',
+        help='The name of the db instance in mongodb')
+    parser.add_argument(
+        '-c', '--collection', dest='collection', action='store',
+        metavar='COLLECTION', default='checkin',
+        help='The collection containing the check-in profile of condidates')
+    parser.add_argument(
+        'topic', metavar='TOPIC', nargs=1,
+        help='The topic file used for experiments.')
+    args = parser.parse_args()
+    run_experiment(args.output, args.topic[0],
+                   db=args.db, coll=args.collection)
+
+if __name__ == '__main__':
+    console()

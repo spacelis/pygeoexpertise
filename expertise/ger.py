@@ -291,7 +291,9 @@ class GeoExpertRetrieval(object):
         } for i, (r, s) in enumerate(zip(rank, scores))])
         return ranking
 
-    def formatQuery(self, topic_id, name, ident, region_name, region_value,
+    @staticmethod
+    def formatQuery(topic_id, name,  # pylint: disable-msg=R0913
+                    ident, region_name, region_value,
                     topic_type):
         """ Format query
 
@@ -335,10 +337,11 @@ class GeoExpertRetrieval(object):
         rankings = pd.DataFrame(columns=GeoExpertRetrieval.RANK_SCHEMA)
         for t in topics.values:
             t = dict(zip(topics.columns, t))
-            q = self.formatQuery(t['topic_id'], t['topic'],
-                                 t['associate_id'], t['region'],
-                                 REGIONS[t['region']]['value'],
-                                 t['topic_id'][0])
+            q = GeoExpertRetrieval.formatQuery(
+                t['topic_id'], t['topic'],
+                t['associate_id'], t['region'],
+                REGIONS[t['region']]['value'],
+                t['topic_id'][0])
             self._logger.info('Processing %(topic_id)s...', q)
             try:
                 for mtc in metrics:
@@ -356,7 +359,8 @@ METRICS = [naive_metrics, recency_metrics, diversity_metrics, random_metrics]
 PROFILE_TYPES = [rankCheckinProfile, rankActiveDayProfile]
 
 
-def run_experiment(outfile, topicfile, db='geoexpert', coll='checkin'):
+def run_experiment(outfile, topicfile, db='geoexpert', coll='checkin',
+                   cutoff=5):
     """ Running a set of queries to generate the self-evaluation survey
         for geo-experts.
     """
@@ -365,7 +369,7 @@ def run_experiment(outfile, topicfile, db='geoexpert', coll='checkin'):
     survey = GeoExpertRetrieval('selfeval', checkin_collection)
 
     # Do batch ranking with all the parameters
-    rankings = survey.batchQuery(topics, METRICS, PROFILE_TYPES, 30)
+    rankings = survey.batchQuery(topics, METRICS, PROFILE_TYPES, cutoff)
     rankings.to_csv(outfile, float_format='%.3f', index=False,
                     names=GeoExpertRetrieval.RANK_SCHEMA)
 
@@ -396,11 +400,16 @@ def console():
         metavar='COLLECTION', default='checkin',
         help='The collection containing the check-in profile of condidates')
     parser.add_argument(
+        '-k', '--cutoff', dest='cutoff', action='store',
+        metavar='COLLECTION', default=5, type=int,
+        help='The collection containing the check-in profile of condidates')
+    parser.add_argument(
         'topic', metavar='TOPIC', nargs=1,
         help='The topic file used for experiments.')
     args = parser.parse_args()
     run_experiment(args.output, args.topic[0],
-                   db=args.db, coll=args.collection)
+                   db=args.db, coll=args.collection,
+                   cutoff=args.cutoff)
 
 if __name__ == '__main__':
     console()

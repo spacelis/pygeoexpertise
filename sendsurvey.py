@@ -14,6 +14,7 @@ Description:
         "wenli","1234567689abcdef"
 """
 
+import re
 import sys
 import csv
 import random
@@ -23,10 +24,28 @@ import argparse
 import time
 
 
-TEMPLATE = ['@%(twitter_id)s Hi, would you like to support a PhD project by doing a survey? %(link)s',
-            '@%(twitter_id)s Science needs you! Plz help us with our survey. %(link)s',
-            '@%(twitter_id)s You have done a LOOOOT of checkins, would you like to help us by doing a survey? %(link)s',
-            '@%(twitter_id)s Hey, you seems an expert knowing your neighborhood. Do you want to help us with a survey? %(link)s']
+TEMPLATE = [
+    #'@%(twitter_id)s Hi, would you like to support a PhD project by doing a survey? %(link)s',
+    #'@%(twitter_id)s Science needs you! Plz help us with our survey. %(link)s',
+    '@%(twitter_id)s Could you help our non-profit project on geographic information retrieval. %(link)s',
+    '@%(twitter_id)s Could you join us in our non-profit study on perception of Place of Interest annotation. %(link)s',
+    #'@%(twitter_id)s You have done a LOOOOT of checkins, would you like to help us by doing a survey? %(link)s',
+    #'@%(twitter_id)s Hey, you seems an expert knowing your neighborhood. Do you want to help us with a survey? %(link)s'
+    '@%(twitter_id)s Hey, you seem an expert of your neighborhood. Could you help our non-profit project? %(link)s'
+    ]
+
+
+HLINK = re.compile('https?://[a-z\-_./]+[a-zA-Z0-9\-\.\?\,\'\/\\\+&amp;%\$#_=]*')
+
+
+def count_char(txt):
+    """ Count the char number in twitter
+
+    :txt: @todo
+    :returns: @todo
+
+    """
+    return len(HLINK.subn('http://t.co/xxxxxxxxxx', txt)[0])
 
 
 def getFormURL(form_id):
@@ -49,9 +68,12 @@ def sendtweet(api, template, para_list, dryrun=True, interval=60):
                 print 'Fail at', p['twitter_id']
                 print >> sys.stderr, p['twitter_id'] + ',' + p['link']
         else:
-            print len(txt), txt
+            print count_char(txt), txt
         intv = random.gauss(interval, 10)
-        time.sleep(intv if intv > 0 else 10)
+        if not dryrun:
+            time.sleep(intv if intv > 0 else 10)
+        else:
+            print 'sleep', intv
 
 
 def distribute(csvfile, dryrun=True, interval=360):

@@ -5,6 +5,7 @@ script
 twitter.py
 apihelper.py
 tags
+test/data
 
 # C extensions
 *.so

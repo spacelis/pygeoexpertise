@@ -14,18 +14,22 @@ import json
 import pandas as pd
 
 
-from qrel_tools import take_most_freq, take_avg, normalize, expand_field
+from qrel_tools import major_vote, avg_vote, normalize, expand_field
 
 
-def toQrel(judgement_df):
+def toQrel(judgement_df, modest=None):
     """ Convert the judgement_df into qrel file
 
     :judgement_df: @todo
     :returns: @todo
 
     """
+    aggreement = avg_vote(
+        judgement_df[['topic_id', 'candidate', 'score']], 'score')
     for _, (topic_id, score, candidate) in \
-            judgement_df[['topic_id', 'score', 'candidate']].iterrows():
+            aggreement[['topic_id', 'score', 'candidate']].iterrows():
+        if modest:
+            score = (score > modest)
         score = int(score)
         print topic_id, 'Q0', candidate, score
 
@@ -61,12 +65,15 @@ def transform(jfile):
         judgement = expand_field(judgement, 'scores', 'topic_id', 'score')
         normalize(judgement)
         print >> sys.stderr, 'Drop Duplication TAKE_LAST =', take_last
-        aggrement = take_avg(
-            judgement[['topic_id', 'candidate', 'score']], 'score')
-        toQrel(aggrement)
+        toQrel(judgement)
 
 
 if __name__ == '__main__':
+    modest = None
+    print >> sys.stderr, sys.argv
     if len(sys.argv) < 2:
-        print 'Usage: judgement2qrel <jsonfile> <topics>'
-    transform(sys.argv[1])
+        print >> sys.stderr, 'Usage: judgement2qrel <jsonfile> [modest]'
+    elif len(sys.argv) == 3:
+        modest = int(sys.argv[2])
+    #transform(sys.argv[1])
+    toQrel(pd.read_csv(sys.argv[1]), modest)

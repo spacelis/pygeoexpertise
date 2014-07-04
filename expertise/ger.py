@@ -19,34 +19,40 @@ import expertise.pandasmongo as pandasmongo
 from itertools import groupby
 import uuid
 
+CKLAT = 'place.bounding_box.coordinates.0.0.1'
+CKLON = 'place.bounding_box.coordinates.0.0.0'
 
 REGIONS = {
     'Chicago': {'name': 'Chicago',
-                'value': {"place.bounding_box.coordinates.0.0.1":
-                          {'$gt': 41.4986, '$lt': 42.0232},
-                          "place.bounding_box.coordinates.0.0.0":
-                          {'$gt': -88.1586, '$lt': -87.3573}}},
+                'value': {CKLAT: {'$gt': 41.4986, '$lt': 42.0232},
+                          CKLON: {'$gt': -88.1586, '$lt': -87.3573}}},
     'New York': {'name': 'New York',
-                 'value': {"place.bounding_box.coordinates.0.0.1":
-                           {'$gt': 40.4110, '$lt': 40.9429},
-                           "place.bounding_box.coordinates.0.0.0":
-                           {'$gt': -74.2918, '$lt': -73.7097}}},
+                 'value': {CKLAT: {'$gt': 40.4110, '$lt': 40.9429},
+                           CKLON: {'$gt': -74.2918, '$lt': -73.7097}}},
     'Los Angeles': {'name': 'Los Angeles',
-                    'value': {"place.bounding_box.coordinates.0.0.1":
-                              {'$gt': 33.7463, '$lt': 34.2302},
-                              "place.bounding_box.coordinates.0.0.0":
-                              {'$gt': -118.6368, '$lt': -117.9053}}},
+                    'value': {CKLAT: {'$gt': 33.7463, '$lt': 34.2302},
+                              CKLON: {'$gt': -118.6368, '$lt': -117.9053}}},
     'San Francisco': {'name': 'San Francisco',
-                      'value': {"place.bounding_box.coordinates.0.0.1":
-                                {'$gt': 37.7025, '$lt': 37.8045},
-                                "place.bounding_box.coordinates.0.0.0":
-                                {'$gt': -122.5349, '$lt': -122.3546}}},
-    'US': {'name': 'US',
-           'value': {'place.bounding_box.coordinates.0.0.1':
-                     {'$gt': 24.5210, '$lt': 49.3845},
-                     'place.bounding_box.coordinates.0.0.0':
-                     {'$gt': -124.7625, '$lt': -66.9326}}}
+                      'value': {CKLAT: {'$gt': 37.7025, '$lt': 37.8045},
+                                CKLON: {'$gt': -122.5349, '$lt': -122.3546}}},
+    #'US': {'name': 'US',
+    #       'value': {CKLAT: {'$gt': 24.5210, '$lt': 49.3845},
+    #                 CKLON: {'$gt': -124.7625, '$lt': -66.9326}}}
 }
+
+
+def get_region(lat, lon):
+    """ return the name of the region of the given coordinates
+
+    :lat: @todo
+    :lon: @todo
+    :returns: @todo
+
+    """
+    for v in REGIONS.itervalues():
+        if ((v['value'][CKLAT]['$gt'] < lat < v['value'][CKLAT]['$lt']) and
+                v['value'][CKLON]['$lt'] < lon < v['value'][CKLON]['$gt']):
+            return v['name']
 
 
 class KnowledgeBase(object):
@@ -89,8 +95,8 @@ class KnowledgeBase(object):
                           'user.screen_name': 'user',
                           'user.id': 'uid',
                           'place.id': 'pid',
-                          'place.bounding_box.coordinates.0.0.1': 'lat',
-                          'place.bounding_box.coordinates.0.0.0': 'lng',
+                          CKLAT: 'lat',
+                          CKLON: 'lng',
                           'place.name': 'place',
                           'place.category.name': 'category',
                           'place.category.id': 'cid',

@@ -11,11 +11,14 @@ Description:
 
 import sys
 import logging
+import argparse
 import pandas as pd
 from pymongo import MongoClient
 from expertise.ger import KnowledgeBase
 from expertise.ger import REGIONS
+from expertise.ger import get_region
 from stratified import stratified_samples
+
 
 db = MongoClient().geoexpert
 
@@ -115,24 +118,97 @@ def sampling_cate_topics(regions, size, g_percentages):
     return topics
 
 
-def gen_topics(outfile):
+def output_topics(topics, fout):
     """Return all topics generate from the database
     :returns: @todo
 
     """
-    topic_set = pd.DataFrame(columns=TOPIC_SCHEMA)
-    t = sampling_cate_topics(list(REGIONS.itervalues()), 18, [0.1, 0.9])
-    topic_set = topic_set.append(t, ignore_index=True)
-    for r in REGIONS.itervalues():
-        t = sampling_poi_topics(r, 45, [0.1, 0.8, 0.1])
-        topic_set = topic_set.append(t, ignore_index=True)
-    with open(outfile, 'w') as fout:
-        topic_set.to_csv(fout, index=False, na_rep='N/A',
-                         cols=TOPIC_SCHEMA, encoding='utf-8')
+    topic_set = pd.from_records(topics)
+    topic_set.to_csv(fout, index=False, na_rep='N/A',
+                     cols=TOPIC_SCHEMA, encoding='utf-8')
     _LOGGER.info('# Total Topics: %d', len(topic_set))
+
+
+def make_random_topics():
+    """ Generating topics from randomly from data set.
+
+    :returns: @todo
+
+    """
+    for t in sampling_cate_topics(list(REGIONS.itervalues()), 18, [0.1, 0.9]):
+        yield t
+    for r in REGIONS.itervalues():
+        for t in sampling_poi_topics(r, 45, [0.1, 0.8, 0.1]):
+            yield t
+
+
+def make_cate_topic(cate_id, topic_id, region):
+    """@todo: Docstring for make_cate_topic.
+
+    :cate_id: @todo
+    :returns: @todo
+
+    """
+    cate = db.category.find_one({'id': cate_id})
+    return {
+        'topic_id': topic_id,
+        'topic': cate['name'],
+        'region': region,
+        'associate_id': cate_id,
+        'zcategory': cate['category']['zero_cateogry']
+    }
+
+
+def make_poi_topic(poi_id, topic_id):
+    """@todo: Docstring for make_poi_topic.
+
+    :poi_id: @todo
+    :returns: @todo
+
+    """
+    poi = db.checkin.find_on({'place.id': poi_id, })['place']
+    region = get_region(poi['boundingbox']['coordinates'][0][0][1],
+                        poi['boundingbox']['coordinates'][0][0][0])
+    return {
+        'topic_id': topic_id,
+        'topic': poi['name'],
+        'region': region,
+        'associate_id': poi_id,
+        'zcategory': poi['category']['zero_cateogry']
+    }
+
+
+def console():
+    """ Processing the incoming arguments from commandline.
+    :returns: @todo
+
+    """
+    parser = argparse.ArgumentParser(
+        description='Generating topics randomly or from lists.')
+    parser.add_argument('-r', dest='random',
+                        action='store_true', default=False,
+                        help='Generating topic randomly from data set.')
+    parser.add_argument('-p', dest='pois', action='store',
+                        help='Generating topics fom a list of ids.')
+    parser.add_argument('-c', dest='categories', action='store',
+                        help='Generating topics fom a list of ids.')
+
+    args = parser.parse_args()
+    if args.random:
+        output_topics(make_random_topics(sys.stdout), sys.stdout)
+    else:
+        if args.pois:
+            with open(args.pois) as fin:
+                output_topics((make_poi_topic(l) for l in fin), sys.stdout)
+        if args.categories:
+            with open(args.categories) as fin:
+                output_topics((make_cate_topic(*l.split(',', 2))
+                               for l in fin),
+                              sys.stdout)
+
 
 if __name__ == '__main__':
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
-    gen_topics(sys.argv[1])
+    console()

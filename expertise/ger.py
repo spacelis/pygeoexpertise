@@ -35,9 +35,9 @@ REGIONS = {
     'San Francisco': {'name': 'San Francisco',
                       'value': {CKLAT: {'$gt': 37.7025, '$lt': 37.8045},
                                 CKLON: {'$gt': -122.5349, '$lt': -122.3546}}},
-    #'US': {'name': 'US',
-    #       'value': {CKLAT: {'$gt': 24.5210, '$lt': 49.3845},
-    #                 CKLON: {'$gt': -124.7625, '$lt': -66.9326}}}
+    # 'US': {'name': 'US',
+    #        'value': {CKLAT: {'$gt': 24.5210, '$lt': 49.3845},
+    #                  CKLON: {'$gt': -124.7625, '$lt': -66.9326}}}
 }
 
 
@@ -53,7 +53,6 @@ def get_region(lat, lon):
         if ((v['value'][CKLAT]['$gt'] < lat < v['value'][CKLAT]['$lt']) and
                 v['value'][CKLON]['$lt'] < lon < v['value'][CKLON]['$gt']):
             return v['name']
-
 
 class KnowledgeBase(object):
     """ KnowledgeBase stores all check-in information to support expert
@@ -235,22 +234,22 @@ def diversity_metrics(profiles, cutoff=-1, **_):
         return mrank.index.values, mrank.values
 
 
-#def RD_metrics(profiles, cutoff=-1, **kargs):
-    #""" A metrics boosting diverse visits
-    #"""
-    ## TODO not finished, planned to use row wise aggregation function
-    ## for the job
-    ## NOTICE the log function for diversity and exp for recency looks
-    ## funny when putting them together
-    #refdate = kargs.get('refdate',
-                         #datetime.strptime('2013-08-01', '%Y-%m-%d'))
-    #mrank = profiles.agg(
-        #lambda row: np.sum([np.log2(_count_iter(y) + 1)
-                            #for _, y in groupby(np.sort(row))]))
-    #if cutoff > 0:
-        #return mrank.index.values[:cutoff], mrank.values[:cutoff]
-    #else:
-        #return mrank.index.values, mrank.values
+# def RD_metrics(profiles, cutoff=-1, **kargs):
+#     """ A metrics boosting diverse visits
+#     """
+#     # TODO not finished, planned to use row wise aggregation function
+#     # for the job
+#     # NOTICE the log function for diversity and exp for recency looks
+#     # funny when putting them together
+#     refdate = kargs.get('refdate',
+#                         datetime.strptime('2013-08-01', '%Y-%m-%d'))
+#     mrank = profiles.agg(
+#         lambda row: np.sum([np.log2(_count_iter(y) + 1)
+#                             for _, y in groupby(np.sort(row))]))
+#     if cutoff > 0:
+#         return mrank.index.values[:cutoff], mrank.values[:cutoff]
+#     else:
+#         return mrank.index.values, mrank.values
 
 
 class GeoExpertRetrieval(object):

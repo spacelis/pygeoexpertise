@@ -142,7 +142,7 @@ def expand_field(df, fieldname, keyname, valname):
     :returns: @todo
 
     """
-    if isinstance(df[fieldname], dict):
+    if isinstance(df[fieldname][0], dict):
         celliter = lambda cell: cell.iteritems()
     else:
         celliter = lambda cell: json.loads(cell).iteritems()

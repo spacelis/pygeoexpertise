@@ -255,6 +255,33 @@ def diversity_metrics(profiles, cutoff=-1, **_):
 #         return mrank.index.values, mrank.values
 
 
+def converge(func, init, **kwargs):
+    """Iteratively apply func to a value starting with init until it converge
+
+    :func: a function to apply
+    :init: the initial value
+    :count: the max number of iterations (0 means inf)
+    :atol: the absolute tolerance (see numpy.allclose)
+    :rtol: the relevant tolerance (see numpy.allclose)
+    :returns: the converged value
+    """
+    count = kwargs.get('count', 1000)
+    old_val = init
+    all_close_params = {k: v for k, v in kwargs.items()}
+    if count > 0:
+        it = range(count)
+    else:
+        def inf():
+            while True:
+                yield -1
+        it = inf()
+    for _ in it:
+        val = func(old_val)
+        if np.allclose(val, old_val, **all_close_params):
+            return val
+        old_val = val
+
+
 def hub_auth_metrics(profiles, cutoff=-1, **_):
     """ A method based on hub-auth score.
     http://en.wikipedia.org/wiki/HITS_algorithm
@@ -282,13 +309,11 @@ def hub_auth_metrics(profiles, cutoff=-1, **_):
         for p in ps:
             M[candidates[u], pois[p]] = 1
     # Normalize
-    # TODO may have problem
     M = M / M.sum(axis=1).reshape((-1, 1))
     MT = M.T / M.T.sum(axis=1).reshape((-1, 1))
     P = np.dot(M, MT)
     # Power Iteration
-    for _ in range(1000):
-        A = np.dot(P, A)
+    A = converge(lambda x: np.dot(P, x), A, rtol=0.001)
 
     # Format results
     mrank = pd.DataFrame({

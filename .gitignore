@@ -6,6 +6,7 @@ twitter.py
 apihelper.py
 tags
 test/data
+data
 
 # C extensions
 *.so

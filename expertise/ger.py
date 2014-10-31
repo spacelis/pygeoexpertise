@@ -54,6 +54,7 @@ def get_region(lat, lon):
                 v['value'][CKLON]['$lt'] < lon < v['value'][CKLON]['$gt']):
             return v['name']
 
+
 class KnowledgeBase(object):
     """ KnowledgeBase stores all check-in information to support expert
         querying.
@@ -254,6 +255,53 @@ def diversity_metrics(profiles, cutoff=-1, **_):
 #         return mrank.index.values, mrank.values
 
 
+def hub_auth_metrics(profiles, cutoff=-1, **_):
+    """ A method based on hub-auth score.
+    http://en.wikipedia.org/wiki/HITS_algorithm
+
+    :profiles: grouped profiles of users
+    :cutoff: the cutoff of the length of the returned list
+    :returns: (users in rank, score)
+
+    """
+    visits = pd.concat([
+        profiles['pid'].agg({
+            'pid_list': lambda x: [i for i in np.unique(x)],
+            'cks': lambda x: len(x)
+        })
+    ]).reset_index()
+    # create name to index mapping
+    candidates = {c: i for i, c in enumerate(visits['user'])}
+    poi_set = set(reduce(lambda x, y: x + y, visits['pid_list'], []))
+    pois = {p: i for i, p in enumerate(poi_set)}
+    # prepare initial values
+    A = np.zeros((len(candidates), 1))
+    M = np.zeros((len(candidates), len(pois)))
+    for _, (u, ps, cks) in visits[['user', 'pid_list', 'cks']].iterrows():
+        A[candidates[u], 0] = cks
+        for p in ps:
+            M[candidates[u], pois[p]] = 1
+    # Normalize
+    # TODO may have problem
+    M = M / M.sum(axis=1).reshape((-1, 1))
+    MT = M.T / M.T.sum(axis=1).reshape((-1, 1))
+    P = np.dot(M, MT)
+    # Power Iteration
+    for _ in range(1000):
+        A = np.dot(P, A)
+
+    # Format results
+    mrank = pd.DataFrame({
+        'score': pd.Series(A.flatten(), index=range(A.size)),
+        'candidate': pd.Series({v: k for k, v in candidates.items()})
+    }).reset_index().set_index('candidate').score.order(ascending=False)
+
+    if cutoff > 0:
+        return mrank.index.values[:cutoff], mrank.values[:cutoff]
+    else:
+        return mrank.index.values, mrank.values
+
+
 class GeoExpertRetrieval(object):
     """ A class represent a survey consisting of a bunch of questionnaires
     """
@@ -362,8 +410,13 @@ class GeoExpertRetrieval(object):
         return rankings
 
 
-METRICS = [naive_metrics, recency_metrics, diversity_metrics, random_metrics]
-PROFILE_TYPES = [rankCheckinProfile, rankActiveDayProfile]
+METRICS = [naive_metrics,
+           recency_metrics,
+           diversity_metrics,
+           random_metrics,
+           hub_auth_metrics]
+PROFILE_TYPES = [rankCheckinProfile,
+                 rankActiveDayProfile]
 
 
 def run_experiment(outfile, topicfile, db='geoexpert', coll='checkin',

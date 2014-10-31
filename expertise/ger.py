@@ -137,7 +137,6 @@ class KnowledgeBase(object):
         return profile_type(self.checkins, metrics, cutoff=cutoff)
 
 
-# TODO make use of multi-level index, which may ease grouping
 def rankCheckinProfile(checkins, metrics, **kargs):
     """ Rank the profile based on checkins
     """
@@ -163,6 +162,7 @@ def rankActiveDayProfile(checkins, metrics, **kargs):
 
 def naive_metrics(profiles, cutoff=-1, **_):
     """ using number of visitings / active days themselves for ranking
+        score_u = N_ck(u, p)
     """
     mrank = profiles['id'].count().order(ascending=False)
     if cutoff > 0:
@@ -199,6 +199,7 @@ def _time_diff(t_array, t):
 
 def recency_metrics(profiles, cutoff=-1, **kargs):
     """ A metrics boosting recent visits
+        score_{u} = sum_{c \in T} exp d*(t_c - t_ref)
     """
     refdate = kargs.get('refdate', np.datetime64('2013-08-01T00:00:00+02'))
     decay_rate = kargs.get('decay_rate', 1. / 60)
@@ -222,6 +223,7 @@ def _count_iter(it):
 
 def diversity_metrics(profiles, cutoff=-1, **_):
     """ A metrics boosting diverse visits
+        score_{u} = sum_{p \in T} log_2 N_{ck}(u, p)
     """
     mrank = profiles['pid'].agg(
         lambda x: np.sum([np.log2(_count_iter(y) + 1)

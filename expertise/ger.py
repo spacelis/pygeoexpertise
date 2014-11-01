@@ -21,6 +21,10 @@ import uuid
 
 CKLAT = 'place.bounding_box.coordinates.0.0.1'
 CKLON = 'place.bounding_box.coordinates.0.0.0'
+REFDATE_DEFAULT = np.datetime64('2013-08-01T00:00:00+02')
+DECAYRATE_DEFAULT = 1. / 180
+ONEDAY = np.timedelta64(1, 'D')
+
 
 REGIONS = {
     'Chicago': {'name': 'Chicago',
@@ -192,11 +196,8 @@ def random_metrics(profiles, cutoff=-1, **_):
         return mrank, np.zeros(len(mrank))
 
 
-ONEDAY = np.timedelta64(1, 'D')
-
-
 def _time_diff(t_array, t):
-    """ Return the difference between two time points
+    """ Return the difference in days between two time points
     """
     return (t_array - t) / ONEDAY
 
@@ -205,8 +206,8 @@ def recency_metrics(profiles, cutoff=-1, **kargs):
     """ A metrics boosting recent visits
         score_{u} = sum_{c \in T} exp d*(t_c - t_ref)
     """
-    refdate = kargs.get('refdate', np.datetime64('2013-08-01T00:00:00+02'))
-    decay_rate = kargs.get('decay_rate', 1. / 60)
+    refdate = kargs.get('refdate', REFDATE_DEFAULT)
+    decay_rate = kargs.get('decay_rate', DECAYRATE_DEFAULT)
     mrank = profiles['created_at'].agg(
         lambda x: np.sum(np.exp(_time_diff(x.values, refdate) * decay_rate))) \
         .order(ascending=False)
@@ -234,8 +235,8 @@ def RD_metrics(profiles, cutoff=-1, **kargs):
     """ A metrics boosting diverse visits
         score_u = sum_{l in T} log_2 sum_{l_c = l} exp d*(t_c - t_ref)
     """
-    refdate = kargs.get('refdate', np.datetime64('2013-08-01T00:00:00+02'))
-    decay_rate = kargs.get('decay_rate', 1. / 60)
+    refdate = kargs.get('refdate', REFDATE_DEFAULT)
+    decay_rate = kargs.get('decay_rate', DECAYRATE_DEFAULT)
     mrank = profiles.apply(
         lambda x: np.sum(np.log2(x.groupby('pid').apply(
             lambda x: np.sum(np.exp(_time_diff(x['created_at'].values, refdate)
@@ -419,7 +420,8 @@ METRICS = [naive_metrics,
            recency_metrics,
            diversity_metrics,
            random_metrics,
-           bao2012_metrics]
+           bao2012_metrics,
+           RD_metrics]
 PROFILE_TYPES = [rankCheckinProfile,
                  rankActiveDayProfile]
 

@@ -151,10 +151,13 @@ def rankActiveDayProfile(checkins, metrics, **kargs):
 
         All check-ins on the same day are considered as only one check-in
     """
+    checkins.sort('created_at', ascending=True, inplace=True)
     day_profiles = checkins.drop_duplicates(
         cols=['user',
               'created_date',
-              'pid'])
+              'pid'],
+        take_last=True
+    )
     day_profiles['created_at'] = day_profiles['created_date']
     profiles = day_profiles.groupby('user')
     rank, scores = metrics(profiles, **kargs)
@@ -213,22 +216,12 @@ def recency_metrics(profiles, cutoff=-1, **kargs):
         return mrank.index.values, mrank.values
 
 
-def _count_iter(it):
-    """ Count the number of element that would return by an iterator
-    """
-    cnt = 0
-    for _ in it:
-        cnt += 1
-    return cnt
-
-
 def diversity_metrics(profiles, cutoff=-1, **_):
     """ A metrics boosting diverse visits
-        score_{u} = sum_{p \in T} log_2 N_{ck}(u, p)
+        score_{u} = sum_{p in T} log_2 N_{ck}(u, p)
     """
-    mrank = profiles['pid'].agg(
-        lambda x: np.sum([np.log2(_count_iter(y) + 1)
-                          for _, y in groupby(np.sort(x))]))\
+    mrank = profiles.apply(
+        lambda x: np.sum(np.log2(x.groupby('pid').apply(len))))\
         .order(ascending=False)
 
     if cutoff > 0:
@@ -237,22 +230,22 @@ def diversity_metrics(profiles, cutoff=-1, **_):
         return mrank.index.values, mrank.values
 
 
-# def RD_metrics(profiles, cutoff=-1, **kargs):
-#     """ A metrics boosting diverse visits
-#     """
-#     # TODO not finished, planned to use row wise aggregation function
-#     # for the job
-#     # NOTICE the log function for diversity and exp for recency looks
-#     # funny when putting them together
-#     refdate = kargs.get('refdate',
-#                         datetime.strptime('2013-08-01', '%Y-%m-%d'))
-#     mrank = profiles.agg(
-#         lambda row: np.sum([np.log2(_count_iter(y) + 1)
-#                             for _, y in groupby(np.sort(row))]))
-#     if cutoff > 0:
-#         return mrank.index.values[:cutoff], mrank.values[:cutoff]
-#     else:
-#         return mrank.index.values, mrank.values
+def RD_metrics(profiles, cutoff=-1, **kargs):
+    """ A metrics boosting diverse visits
+        score_u = sum_{l in T} log_2 sum_{l_c = l} exp d*(t_c - t_ref)
+    """
+    refdate = kargs.get('refdate', np.datetime64('2013-08-01T00:00:00+02'))
+    decay_rate = kargs.get('decay_rate', 1. / 60)
+    mrank = profiles.apply(
+        lambda x: np.sum(np.log2(x.groupby('pid').apply(
+            lambda x: np.sum(np.exp(_time_diff(x['created_at'].values, refdate)
+                                    * decay_rate))
+        ))))\
+        .order(ascending=False)
+    if cutoff > 0:
+        return mrank.index.values[:cutoff], mrank.values[:cutoff]
+    else:
+        return mrank.index.values, mrank.values
 
 
 def converge(func, init, **kwargs):

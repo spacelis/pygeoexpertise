@@ -318,12 +318,6 @@ class GeoExpertRetrieval(object):
         self._logger = logging.getLogger(
             '%s.%s' % (__name__, type(self).__name__))
 
-    @staticmethod
-    def _getid():
-        """ Return an unique identifier
-        """
-        return uuid.uuid4()
-
     def rankExperts(self, query, rank_method, profile_type, cutoff=5):
         """ Return a set of parameters for setting up questionnaires
             :param query: a dict() object holding topic and region for query
@@ -340,7 +334,6 @@ class GeoExpertRetrieval(object):
         kbase = KnowledgeBase.fromMongo(self.collection, q)
         rank, scores = kbase.rank(profile_type, rank_method, cutoff=cutoff)
         ranking = pd.DataFrame([{
-            'rank_id': '%s-%s' % (self.name, GeoExpertRetrieval._getid()),
             'topic_id': query['topic_id'],
             'region': query['region']['name'],
             'topic': query['topic']['name'],
@@ -390,7 +383,7 @@ class GeoExpertRetrieval(object):
                         'value': region_value}}
 
     RANK_SCHEMA = ['topic_id', 'rank', 'user_screen_name', 'score',
-                   'rank_method', 'profile_type', 'region', 'topic', 'rank_id']
+                   'rank_method', 'profile_type', 'region', 'topic']
 
     def batchQuery(self, topics, metrics, profile_type, cutoff=5):
         """ batchquery

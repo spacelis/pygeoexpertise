@@ -309,7 +309,7 @@ def bao2012_metrics(profiles, cutoff=-1, **_):
 
 
 class GeoExpertRetrieval(object):
-    """ A class represent a survey consisting of a bunch of questionnaires
+    """ A class managing querying the geoexperts.
     """
     def __init__(self, name, collection):
         super(GeoExpertRetrieval, self).__init__()
@@ -421,15 +421,14 @@ PROFILE_TYPES = [rankCheckinProfile,
 
 def run_experiment(outfile, topicfile, db='geoexpert', coll='checkin',
                    cutoff=5):
-    """ Running a set of queries to generate the self-evaluation survey
-        for geo-experts.
+    """ Running a set of queries to generate ranking lists to topics.
     """
     topics = pd.read_csv(topicfile)
     checkin_collection = pymongo.MongoClient()[db][coll]
-    survey = GeoExpertRetrieval('selfeval', checkin_collection)
+    ger = GeoExpertRetrieval('all', checkin_collection)
 
     # Do batch ranking with all the parameters
-    rankings = survey.batchQuery(topics, METRICS, PROFILE_TYPES, cutoff)
+    rankings = ger.batchQuery(topics, METRICS, PROFILE_TYPES, cutoff)
     rankings.to_csv(outfile, float_format='%.3f', index=False,
                     names=GeoExpertRetrieval.RANK_SCHEMA)
 

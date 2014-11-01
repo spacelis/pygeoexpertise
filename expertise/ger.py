@@ -275,7 +275,7 @@ def converge(func, init, **kwargs):
         old_val = val
 
 
-def hub_auth_metrics(profiles, cutoff=-1, **_):
+def bao2012_metrics(profiles, cutoff=-1, **_):
     """ A method based on hub-auth score.
     http://en.wikipedia.org/wiki/HITS_algorithm
 
@@ -284,35 +284,22 @@ def hub_auth_metrics(profiles, cutoff=-1, **_):
     :returns: (users in rank, score)
 
     """
-    visits = pd.concat([
-        profiles['pid'].agg({
-            'pid_list': lambda x: [i for i in np.unique(x)],
-            'cks': lambda x: len(x)
-        })
-    ]).reset_index()
-    # create name to index mapping
-    candidates = {c: i for i, c in enumerate(visits['user'])}
-    poi_set = set(reduce(lambda x, y: x + y, visits['pid_list'], []))
-    pois = {p: i for i, p in enumerate(poi_set)}
+    visits = profiles.apply(lambda x: x.groupby('pid').apply(lambda x: pd.Series(len(x))))\
+        .reset_index().rename(columns={0: 'cks'})
     # prepare initial values
-    A = np.zeros((len(candidates), 1))
-    M = np.zeros((len(candidates), len(pois)))
-    for _, (u, ps, cks) in visits[['user', 'pid_list', 'cks']].iterrows():
-        A[candidates[u], 0] = cks
-        for p in ps:
-            M[candidates[u], pois[p]] = 1
+    candidates = visits.groupby('user')['cks'].sum()
+    A = candidates.values
+    M = (visits.pivot('user', 'pid', 'cks').values > 0.).astype(float)
     # Normalize
     M = M / M.sum(axis=1).reshape((-1, 1))
     MT = M.T / M.T.sum(axis=1).reshape((-1, 1))
     P = np.dot(M, MT)
     # Power Iteration
-    A = converge(lambda x: np.dot(P, x), A, rtol=0.001)
+    A = converge(lambda x: np.dot(P, x), candidates, rtol=0.001)
 
     # Format results
-    mrank = pd.DataFrame({
-        'score': pd.Series(A.flatten(), index=range(A.size)),
-        'candidate': pd.Series({v: k for k, v in candidates.items()})
-    }).reset_index().set_index('candidate').score.order(ascending=False)
+    mrank = pd.Series(A.flatten(),
+                      index=candidates.index.values).order(ascending=False)
 
     if cutoff > 0:
         return mrank.index.values[:cutoff], mrank.values[:cutoff]
@@ -432,7 +419,7 @@ METRICS = [naive_metrics,
            recency_metrics,
            diversity_metrics,
            random_metrics,
-           hub_auth_metrics]
+           bao2012_metrics]
 PROFILE_TYPES = [rankCheckinProfile,
                  rankActiveDayProfile]
 

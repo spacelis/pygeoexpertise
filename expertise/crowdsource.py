@@ -30,7 +30,7 @@ def user_checkins(screen_name):
     """
     cklist = list()
     for ck in db.checkin.find({'user.screen_name': screen_name})\
-            .sort('created_at', 1).limit(1000):
+            .sort('created_at', -1).limit(1000):
         cklist.append({
             'id': ck['id'],
             'created_at': ck['created_at'].strftime('%Y-%m-%dT%H:%M:%S'),

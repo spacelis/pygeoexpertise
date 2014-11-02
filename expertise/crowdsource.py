@@ -10,11 +10,12 @@ Description:
     for geoexpert evaluation.
 """
 
-import sys
 import csv
 import json
 import pymongo
-import sqlite3
+import pandas as pd
+import logging
+import click
 
 
 db = pymongo.MongoClient().geoexpert
@@ -48,7 +49,7 @@ def user_checkins(screen_name):
     return cklist
 
 
-def topic_detail(topic_id, topic, associate_id):
+def topic_info(associate_id, level):
     """Return some extra information about the topic
 
     :topic_id: The topic_id of a given topic, e.g. "cate-0001"
@@ -57,100 +58,58 @@ def topic_detail(topic_id, topic, associate_id):
     :returns: Related entity of the given topics with their explanations
 
     """
-    related_to = list()
-    if 'zcate' in topic_id:
-        related_to = [{
-            'name': topic,
-            'filter_name': topic,
-            'filter_type': 'z',
-            'explanation': 'A top-level category'
-        }]
-    elif 'cate' in topic_id:
-        cate = db.category.find_one({'id': associate_id})
-        related_to = [
-            {
-                'name': topic,
-                'filter_name': topic,
-                'filter_type': 'c',
-                'explanation': 'A lower-level category'
-            },
-            {
-                'name': cate['zero_category_name'],
-                'filter_name': cate['zero_category_name'],
-                'filter_type': 'z',
-                'explanation': 'The top-level category that %s belongs to.'
-                % (topic, )
-            }
-        ]
-    elif 'poi' in topic_id:
-        poi = db.checkin.find_one({'place.id': associate_id})['place']
-        related_to = [
-            {
-                'name': topic,
-                'filter_name': associate_id,
-                'filter_type': 'p',
-                'explanation':
-                'A place of interest belongs to category [%s, %s].'
-                % (poi['category']['name'],
-                   poi['category']['zero_category_name'])
-            },
-            {
-                'name': poi['category']['name'],
-                'filter_name': poi['category']['name'],
-                'filter_type': 'c',
-                'explanation': 'A lower category that %s belongs to.'
-                % (topic, )
-            },
-            {
-                'name': poi['category']['zero_category_name'],
-                'filter_name': poi['category']['zero_category_name'],
-                'filter_type': 'z',
-                'explanation': 'A top-level category that %s belongs to.'
-                % (topic, )
-            }
-        ]
-    return related_to
+    if level == 'POI':
+        info = db.checkin.find_one({'place.id': associate_id})['place']
+    elif level == 'CATEGORY':
+        info = db.checkin.find_one(
+            {'place.category.id': associate_id})['place']['category']
+    return info
 
 
-def exportdata(sqlfile):
+@click.command()
+@click.option('-t', '--infocsv', default='geoentities.csv')
+@click.option('-c', '--checkincsv', default='checkins.csv')
+@click.argument('rankcsv', nargs=1)
+def export(rankcsv, infocsv, checkincsv):
     """ Generating two CSV outputs, one for experts and one for topics
 
-    :sqlfile: The sqlite3 database file with Expert - Topic mapping table
-                and Topic table
+    :rankcsv: The csv file with Expert - Topic mapping table and Topic table
     :returns: None
 
     """
-    csv_expert = '.'.join(sqlfile.split('.')[:-1]) + 'expert.csv'
-    csv_topic = '.'.join(sqlfile.split('.')[:-1]) + 'topic.csv'
-    conn = sqlite3.connect(sqlfile)
-    cur = conn.cursor()
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
 
-    with open(csv_expert, 'wb') as fe:
-        w = csv.DictWriter(fe, ['screen_name', 'topics', 'checkins'])
-        w.writeheader()
-        for row in cur.execute('SELECT screen_name, '
-                               'group_concat(topic_id, "\t") '
-                               'FROM expert GROUP BY screen_name'):
-            w.writerow({'screen_name': row[0],
-                        'topics': json.dumps(row[1].split('\t')),
-                        'checkins': json.dumps(user_checkins(row[0]))})
+    ranking = pd.read_csv(rankcsv)
 
-    with open(csv_topic, 'wb') as ft:
-        w = csv.DictWriter(ft, ['topic_id', 'topic', 'region',
-                                'experts', 'related_to'])
+    logging.info('Generating check-in subset for candidates')
+    with open(checkincsv, 'wb') as fe:
+        w = csv.DictWriter(fe, ['screen_name', 'checkins'])
         w.writeheader()
-        for row in cur.execute('SELECT e.topic_id, topic, region, '
-                               'group_concat(screen_name, "\t"), '
-                               'associate_id '
-                               'FROM expert as e left join topic as t '
-                               'ON e.topic_id = t.topic_id '
-                               'GROUP BY e.topic_id'):
-            w.writerow({'topic_id': row[0],
-                        'topic': row[1],
-                        'region': row[2],
-                        'experts': json.dumps(row[3].split('\t')),
-                        'related_to': json.dumps(
-                            topic_detail(row[0], row[1], row[4]))})
+        for c in ranking.candidate.unique():
+            logging.info('Retrieving checkins for %s', c)
+            w.writerow({'screen_name': c,
+                        'checkins': json.dumps(user_checkins(c))})
+
+    logging.info('Generating topic entities')
+    with open(infocsv, 'wb') as ft:
+        w = csv.DictWriter(ft, ['associate_id', 'name', 'info',
+                                'url', 'level'])
+        w.writeheader()
+        for _, row in ranking.drop_duplicates(['topic', 'associate_id'])\
+                .iterrows():
+            logging.info('Retrieving info for %s', row['topic'])
+
+            level = 'POI' if row['topic_id'].startswith('p') else 'CATEGORY'
+            info = topic_info(row['associate_id'], level)
+            url = None if 'url' not in info else info['url']
+
+            w.writerow({'associate_id': row['associate_id'],
+                        'name': row['topic'],
+                        'info': json.dumps(info),
+                        'url': url,
+                        'level': level})
 
 
 def test2():
@@ -162,4 +121,4 @@ def test2():
 
 
 if __name__ == '__main__':
-    exportdata(sys.argv[1])
+    export()

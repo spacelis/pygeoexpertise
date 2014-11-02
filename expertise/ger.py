@@ -287,6 +287,8 @@ def bao2012_metrics(profiles, cutoff=-1, **_):
     """
     visits = profiles.apply(lambda x: x.groupby('pid').apply(lambda x: pd.Series(len(x))))\
         .reset_index().rename(columns={0: 'cks'})
+    if 'cks' not in visits:
+        return [], []
     # prepare initial values
     candidates = visits.groupby('user')['cks'].sum()
     A = candidates.values

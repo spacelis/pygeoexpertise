@@ -21,6 +21,41 @@ import click
 db = pymongo.MongoClient().geoexpert
 
 
+def strip_checkin(tweet):
+    """ Strip useless information from tweets as a checkin.
+
+    :tweet: @todo
+    :returns: @todo
+
+    """
+    place = tweet['place']
+    return {
+        'created_at': tweet['created_at'].isoformat(),
+        'retweeted': tweet['retweeted'],
+        'retweet_count': tweet['retweet_count'],
+        'in_reply_to_status_id': tweet['in_reply_to_status_id'],
+        'in_reply_to_screen_name': tweet['in_reply_to_screen_name'],
+        'in_reply_to_user_id': tweet['in_reply_to_user_id'],
+        'favorited': tweet['favorited'],
+        'favorite_count': tweet['favorite_count'],
+        'id': tweet['id'],
+        'text': tweet['text'],
+        'place': {
+            'place_type': place['place_type'],
+            'lng': place['bounding_box']['coordinates'][0][0][0],
+            'lat': place['bounding_box']['coordinates'][0][0][1],
+            'name': place['name'],
+            'full_name': place['full_name'],
+            'id': place['id'],
+            'category': place['category'],
+        },
+        'user': {
+            'id': tweet['user']['id'],
+            'screen_name': tweet['user']['screen_name']
+        }
+    }
+
+
 def user_checkins(screen_name):
     """ Return a list of simplified check-ins
 
@@ -28,25 +63,11 @@ def user_checkins(screen_name):
     :returns: A list of check-ins
 
     """
-    cklist = list()
-    for ck in db.checkin.find({'user.screen_name': screen_name})\
-            .sort('created_at', -1).limit(1000):
-        cklist.append({
-            'id': ck['id'],
-            'created_at': ck['created_at'].strftime('%Y-%m-%dT%H:%M:%S'),
-            'text': ck['text'],
-            'place': {
-                'id': ck['place']['id'],
-                'name': ck['place']['name'],
-                'lat': ck['place']['bounding_box']['coordinates'][0][0][1],
-                'lng': ck['place']['bounding_box']['coordinates'][0][0][0],
-                'cate_id': ck['place']['category']['id'],
-                'category': ck['place']['category']['name'],
-                'zcate_id': ck['place']['category']['zero_category'],
-                'zcategory': ck['place']['category']['zero_category_name'],
-            }
-        })
-    return cklist
+    cks = db.checkin\
+        .find({'user.screen_name': screen_name})\
+        .sort('created_at', -1)\
+        .limit(1000)
+    return [strip_checkin(c) for c in cks]
 
 
 def topic_info(associate_id, level):

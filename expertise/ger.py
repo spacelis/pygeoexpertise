@@ -16,8 +16,6 @@ import numpy as np
 import pandas as pd
 import pymongo
 import expertise.pandasmongo as pandasmongo
-from itertools import groupby
-import uuid
 
 CKLAT = 'place.bounding_box.coordinates.0.0.1'
 CKLON = 'place.bounding_box.coordinates.0.0.0'
@@ -339,7 +337,8 @@ class GeoExpertRetrieval(object):
             'topic_id': query['topic_id'],
             'region': query['region']['name'],
             'topic': query['topic']['name'],
-            'user_screen_name': r,
+            'associate_id': query['topic']['associate_id'],
+            'candidate': r,
             'rank_method': rank_method.__name__,
             'profile_type': profile_type.__name__,
             'rank': i + 1,
@@ -348,14 +347,17 @@ class GeoExpertRetrieval(object):
         return ranking
 
     @staticmethod
-    def formatQuery(topic_id, name,  # pylint: disable-msg=R0913
-                    ident, region_name, region_value,
+    def formatQuery(topic_id,
+                    topic,
+                    assicate_id,
+                    region_name,
+                    region_value,
                     topic_type):
         """ Format query
 
         :topic_id: The id of the topic
-        :name: the text representation of the topic
-        :ident: The reference identifier for the queried topic
+        :topic: the text representation of the topic
+        :assicate_id: The reference identifier for the queried topic
         :region_name: The name of the region ref: REGIONS
         :topic_type: The type of the topic['z'='zcate', 'c'='cate', p='poi']
         :returns: The dict of the formated query
@@ -363,29 +365,34 @@ class GeoExpertRetrieval(object):
         if topic_type == 'c':
             return {'topic_id': topic_id,
                     'topic': {
-                        'name': name,
-                        'value': {'place.category.id': ident}},
+                        'name': topic,
+                        'associate_id': assicate_id,
+                        'value': {'place.category.id': assicate_id}},
                     'region': {
                         'name': region_name,
                         'value': region_value}}
         elif topic_type == 'z':
             return {'topic_id': topic_id,
                     'topic': {
-                        'name': name,
-                        'value': {'place.category.zero_category': ident}},
+                        'name': topic,
+                        'associate_id': assicate_id,
+                        'value': {
+                            'place.category.zero_category': assicate_id}},
                     'region': {'name': region_name,
                                'value': region_value}}
         elif topic_type == 'p':
             return {'topic_id': topic_id,
                     'topic': {
-                        'name': name,
-                        'value': {'place.id': ident}},
+                        'name': topic,
+                        'associate_id': assicate_id,
+                        'value': {'place.id': assicate_id}},
                     'region': {
                         'name': region_name,
                         'value': region_value}}
 
-    RANK_SCHEMA = ['topic_id', 'rank', 'user_screen_name', 'score',
-                   'rank_method', 'profile_type', 'region', 'topic']
+    RANK_SCHEMA = ['topic_id', 'rank', 'candidate', 'score',
+                   'rank_method', 'profile_type', 'region', 'topic',
+                   'associate_id']
 
     def batchQuery(self, topics, metrics, profile_type, cutoff=5):
         """ batchquery
@@ -394,8 +401,10 @@ class GeoExpertRetrieval(object):
         for t in topics.values:
             t = dict(zip(topics.columns, t))
             q = GeoExpertRetrieval.formatQuery(
-                t['topic_id'], t['topic'],
-                t['associate_id'], t['region'],
+                t['topic_id'],
+                t['topic'],
+                t['associate_id'],
+                t['region'],
                 REGIONS[t['region']]['value'],
                 t['topic_id'][0])
             self._logger.info('Processing %(topic_id)s...', q)

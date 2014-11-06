@@ -290,7 +290,7 @@ def bao2012_metrics(profiles, cutoff=-1, **_):
     # prepare initial values
     candidates = visits.groupby('user')['cks'].sum()
     A = candidates.values
-    M = (visits.pivot('user', 'pid', 'cks').values > 0.).astype(float)
+    M = visits.pivot('user', 'pid', 'cks').values.astype(np.float32)
     # Normalize
     M = M / M.sum(axis=1).reshape((-1, 1))
     MT = M.T / M.T.sum(axis=1).reshape((-1, 1))

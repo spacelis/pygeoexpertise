@@ -257,7 +257,7 @@ def converge(func, init, **kwargs):
     :rtol: the relevant tolerance (see numpy.allclose)
     :returns: the converged value
     """
-    count = kwargs.get('count', 1000)
+    count = kwargs.get('count', 5000)
     old_val = init
     all_close_params = {k: v for k, v in kwargs.items()}
     if count > 0:
@@ -271,7 +271,11 @@ def converge(func, init, **kwargs):
         val = func(old_val)
         if np.allclose(val, old_val, **all_close_params):
             return val
+        prev_val = old_val
         old_val = val
+        if np.any(np.isnan(val)):
+            raise ValueError('Not converge\n%s !=\n%s', prev_val, val)
+    raise ValueError('Not converge\n%s !=\n%s', prev_val, val)
 
 
 def bao2012_metrics(profiles, cutoff=-1, **_):
@@ -289,8 +293,10 @@ def bao2012_metrics(profiles, cutoff=-1, **_):
         return [], []
     # prepare initial values
     candidates = visits.groupby('user')['cks'].sum()
-    A = candidates.values
-    M = visits.pivot('user', 'pid', 'cks').values.astype(np.float32)
+    A = candidates.values.astype(np.float64)
+    logging.debug('A=%s', A)
+    M = visits.pivot('user', 'pid', 'cks').fillna(0).values.astype(np.float64)
+    logging.debug('M=%s', M)
     # Normalize
     M = M / M.sum(axis=1).reshape((-1, 1))
     MT = M.T / M.T.sum(axis=1).reshape((-1, 1))

@@ -66,7 +66,7 @@ def user_checkins(screen_name):
     cks = db.checkin\
         .find({'user.screen_name': screen_name})\
         .sort('created_at', -1)\
-        .limit(1000)
+        .limit(1200)
     return [strip_checkin(c) for c in cks]
 
 

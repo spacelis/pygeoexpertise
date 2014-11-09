@@ -124,7 +124,7 @@ class KnowledgeBase(object):
         projection = projection or KnowledgeBase.DEFAULT_PROJECTION
         query = query or dict()
         checkins = pandasmongo.getDataFrame(collection, query, projection)
-        checkins['created_date'] = checkins['created_at'].map(
+        checkins['created_date'] = checkins['created_at'].apply(
             lambda x: x.replace(hour=0, minute=0, second=0, microsecond=0))
         return cls(checkins)
 
@@ -247,6 +247,28 @@ def RD_metrics(profiles, cutoff=-1, **kargs):
         return mrank.index.values, mrank.values
 
 
+def drawMat(old_val, val, cand, M, MM):
+    """ Draw the mat for inspection
+
+    :val: TODO
+    :M: TODO
+    :MM: TODO
+    :returns: TODO
+
+    """
+    from matplotlib import pyplot as plt
+    from mpldatacursor import datacursor
+    from matplotlib import cm
+    fig, ax = plt.subplots(5, 1)
+    ax[1].matshow(old_val.reshape(1, -1), cmap=cm.gray)
+    ax[0].matshow(val.reshape(1, -1), cmap=cm.gray)
+    ax[2].matshow(np.dot(M.T, val).reshape(1, -1), cmap=cm.gray)
+    ax[3].matshow(M, cmap=cm.gray)
+    ax[4].matshow(MM, cmap=cm.gray)
+    datacursor(display='single')
+    plt.show()
+
+
 def converge(func, init, **kwargs):
     """Iteratively apply func to a value starting with init until it converge
 
@@ -259,7 +281,7 @@ def converge(func, init, **kwargs):
     """
     count = kwargs.get('count', 5000)
     old_val = init
-    all_close_params = {k: v for k, v in kwargs.items()}
+    all_close_params = {k: kwargs[k] for k in kwargs.keys() if k in ['atol', 'rtol']}
     if count > 0:
         it = range(count)
     else:
@@ -269,6 +291,8 @@ def converge(func, init, **kwargs):
         it = inf()
     for _ in it:
         val = func(old_val)
+        val = val / val.sum()
+        drawMat(old_val, val, kwargs['cand'], kwargs['M'], kwargs['MM'])
         if np.allclose(val, old_val, **all_close_params):
             return val
         prev_val = old_val
@@ -296,13 +320,12 @@ def bao2012_metrics(profiles, cutoff=-1, **_):
     A = candidates.values.astype(np.float64)
     logging.debug('A=%s', A)
     M = visits.pivot('user', 'pid', 'cks').fillna(0).values.astype(np.float64)
+    # M = (visits.pivot('user', 'pid', 'cks') > 0).values.astype(np.float64)
     logging.debug('M=%s', M)
     # Normalize
-    M = M / M.sum(axis=1).reshape((-1, 1))
-    MT = M.T / M.T.sum(axis=1).reshape((-1, 1))
-    P = np.dot(M, MT)
+    P = np.dot(M, M.T)
     # Power Iteration
-    A = converge(lambda x: np.dot(P, x), candidates, rtol=0.001)
+    A = converge(lambda x: np.dot(P, x), A, cand=candidates, M=M, MM=P, rtol=0.001)
 
     # Format results
     mrank = pd.Series(A.flatten(),

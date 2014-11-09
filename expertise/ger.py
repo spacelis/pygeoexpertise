@@ -217,10 +217,10 @@ def recency_metrics(profiles, cutoff=-1, **kargs):
 
 def diversity_metrics(profiles, cutoff=-1, **_):
     """ A metrics boosting diverse visits
-        score_{u} = sum_{p in T} log_2 N_{ck}(u, p)
+        score_{u} = sum_{p in T} log_2 N_{ck}(u, p) + 1
     """
     mrank = profiles.apply(
-        lambda x: np.sum(np.log2(x.groupby('pid').apply(len))))\
+        lambda x: np.sum(np.log2(x.groupby('pid').apply(len) + 1)))\
         .order(ascending=False)
 
     if cutoff > 0:
@@ -237,10 +237,8 @@ def RD_metrics(profiles, cutoff=-1, **kargs):
     decay_rate = kargs.get('decay_rate', DECAYRATE_DEFAULT)
     mrank = profiles.apply(
         lambda x: np.sum(np.log2(x.groupby('pid').apply(
-            lambda x: np.sum(np.exp(_time_diff(x['created_at'].values, refdate)
-                                    * decay_rate))
-        ))))\
-        .order(ascending=False)
+            lambda x: np.sum(np.exp(_time_diff(x['created_at'].values, refdate) * decay_rate)) + 1
+        )))).order(ascending=False)
     if cutoff > 0:
         return mrank.index.values[:cutoff], mrank.values[:cutoff]
     else:

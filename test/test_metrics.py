@@ -8,51 +8,84 @@ Github: none
 Description:
 """
 
+import pandas as pd
 import pymongo as mg
 import expertise.ger as mt
+import unittest
 
 
-def test_fromMongo():
-    """ test
-    """
-    c = mg.MongoClient().testdb.checkin
-    k = mt.KnowledgeBase.fromMongo(c)
+class TestClass(unittest.TestCase):  # pylint: disable=too-many-public-methods
+
+    """Test case docstring."""
+
+    def setUp(self):
+        self.checkin = mg.MongoClient(port=27018).geoexpert_test.checkin_sf_rock_top10
+        self.klb = mt.KnowledgeBase.fromMongo(self.checkin)
+
+    def tearDown(self):
+        pass
+
+    def test_NaiveMetrics(self):
+        """ docstring for test_NaiveMetrics
+        """
+        rank, score = mt.rankCheckinProfile(self.klb.checkins, mt.naive_metrics)
+        print 'naive - checkin'
+        print pd.DataFrame(score, index=rank, columns=['score'])
+
+        rank, score = mt.rankActiveDayProfile(self.klb.checkins, mt.naive_metrics)
+        print 'naive - activeday'
+        print pd.DataFrame(score, index=rank, columns=['score'])
+        self.assertTrue(False)
+
+    def test_RecencyMetrics(self):
+        """ docstring for test_RecencyMetrics
+        """
+        rank, score = mt.rankCheckinProfile(self.klb.checkins, mt.recency_metrics)
+        print 'recency - checkin'
+        print pd.DataFrame(score, index=rank, columns=['score'])
+
+        rank, score = mt.rankActiveDayProfile(self.klb.checkins, mt.recency_metrics)
+        print 'recency - activeday'
+        print pd.DataFrame(score, index=rank, columns=['score'])
+        self.assertTrue(False)
+
+    def test_DiversityMetrics(self):
+        """ test_DiversityMetrics
+        """
+        rank, score = mt.rankCheckinProfile(self.klb.checkins, mt.diversity_metrics)
+        print 'diversity - checkin'
+        print pd.DataFrame(score, index=rank, columns=['score'])
+
+        rank, score = mt.rankActiveDayProfile(self.klb.checkins, mt.diversity_metrics)
+        print 'diversity - activeday'
+        print pd.DataFrame(score, index=rank, columns=['score'])
+        self.assertTrue(False)
 
 
-def test_fromTSV():
-    """ test
-    """
-    pass
+    def test_RDMetrics(self):
+        """ test_RDMetrics
+        """
+        rank, score = mt.rankCheckinProfile(self.klb.checkins, mt.RD_metrics)
+        rank, score = mt.rankActiveDayProfile(self.klb.checkins, mt.RD_metrics)
+        print 'RD - checkin'
+        print pd.DataFrame(score, index=rank, columns=['score'])
 
+        rank, score = mt.rankActiveDayProfile(self.klb.checkins, mt.RD_metrics)
+        print 'RD - activeday'
+        print pd.DataFrame(score, index=rank, columns=['score'])
+        self.assertTrue(False)
 
-def test_NaiveMetrics():
-    """ docstring for test_NaiveMetrics
-    """
-    c = mg.MongoClient().testdb.checkin
-    k = mt.KnowledgeBase.fromMongo(c)
-    rank, score = mt.rankCheckinProfile(k.checkins, mt.naive_metrics)
-    rank, score = mt.rankActiveDayProfile(k.checkins, mt.naive_metrics)
+    def test_bao2012(self):
+        """ test_RDMetrics
+        """
+        rank, score = mt.rankCheckinProfile(self.klb.checkins, mt.bao2012_metrics)
+        print 'bao2012_metrics - checkin'
+        print pd.DataFrame(score, index=rank, columns=['score'])
 
-
-def test_RecencyMetrics():
-    """ docstring for test_RecencyMetrics
-    """
-    c = mg.MongoClient().testdb.checkin
-    k = mt.KnowledgeBase.fromMongo(c)
-    rank, score = mt.rankCheckinProfile(k.checkins, mt.recency_metrics)
-    rank, score = mt.rankActiveDayProfile(k.checkins, mt.recency_metrics)
-
-
-def test_DiversityMetrics():
-    """ a
-    """
-    c = mg.MongoClient().testdb.checkin
-    k = mt.KnowledgeBase.fromMongo(c)
-    rank, score = mt.rankCheckinProfile(k.checkins, mt.diversity_metrics)
-    rank, score = mt.rankActiveDayProfile(k.checkins, mt.diversity_metrics)
-
+        rank, score = mt.rankActiveDayProfile(self.klb.checkins, mt.bao2012_metrics)
+        print 'bao2012_metrics - activeday'
+        print pd.DataFrame(score, index=rank, columns=['score'])
+        self.assertTrue(False)
 
 if __name__ == '__main__':
-    #test_NaiveMetrics()
-    #test_RecencyMetrics()
-    test_DiversityMetrics()
+    pass

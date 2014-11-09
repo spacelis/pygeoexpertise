@@ -247,28 +247,6 @@ def RD_metrics(profiles, cutoff=-1, **kargs):
         return mrank.index.values, mrank.values
 
 
-def drawMat(old_val, val, cand, M, MM):
-    """ Draw the mat for inspection
-
-    :val: TODO
-    :M: TODO
-    :MM: TODO
-    :returns: TODO
-
-    """
-    from matplotlib import pyplot as plt
-    from mpldatacursor import datacursor
-    from matplotlib import cm
-    fig, ax = plt.subplots(5, 1)
-    ax[1].matshow(old_val.reshape(1, -1), cmap=cm.gray)
-    ax[0].matshow(val.reshape(1, -1), cmap=cm.gray)
-    ax[2].matshow(np.dot(M.T, val).reshape(1, -1), cmap=cm.gray)
-    ax[3].matshow(M, cmap=cm.gray)
-    ax[4].matshow(MM, cmap=cm.gray)
-    datacursor(display='single')
-    plt.show()
-
-
 def converge(func, init, **kwargs):
     """Iteratively apply func to a value starting with init until it converge
 
@@ -291,8 +269,7 @@ def converge(func, init, **kwargs):
         it = inf()
     for _ in it:
         val = func(old_val)
-        val = val / val.sum()
-        drawMat(old_val, val, kwargs['cand'], kwargs['M'], kwargs['MM'])
+        val = val / val.sum()  # Normalization so that it will converge
         if np.allclose(val, old_val, **all_close_params):
             return val
         prev_val = old_val
@@ -325,7 +302,7 @@ def bao2012_metrics(profiles, cutoff=-1, **_):
     # Normalize
     P = np.dot(M, M.T)
     # Power Iteration
-    A = converge(lambda x: np.dot(P, x), A, cand=candidates, M=M, MM=P, rtol=0.001)
+    A = converge(lambda x: np.dot(P, x), rtol=0.001)
 
     # Format results
     mrank = pd.Series(A.flatten(),

@@ -46,35 +46,26 @@ def filter_topic(df, pop=0):
     return df[df['group'] == pop]
 
 
-def major_vote(jd, col, on_cols=None):
-    """ Generate agreement by max vote
+def merge_votes(jd, col, method='avg', indexedby=None):
+    """ Merge multiple vote on one item by avg or mode
         :jd: Dataframe[candidate, topic_id, score]
-        :on_cols: (default=['candidate', 'topic_id'])
+        :method: the method used for merge
+            'avg' is for averaging the scores per item
+            'mode' is for use the most frequent vote per item
+        :indexedby: (default=['candidate', 'topic_id'])
                   The columns labeling scores
         :return: Dataframe with aggreed judgement
     """
-    if not on_cols:
-        on_cols = ['candidate', 'topic_id']
-
-    max_vote = lambda df: \
-        df[df.score == Counter(df[col].values).most_common(1)[0][0]].head(1)
-    return pd.concat([max_vote(g) for _, g in
-                      jd.groupby(on_cols)])
-
-
-def avg_vote(jd, col):
-    """ Generate agreement by averaging votes
-        :jd: Dataframe[candidate, topic_id, score]
-        :return: Dataframe with aggreed judgement
-    """
-    def avg_votes(df):
+    def avg_merge(df):
         """ dummy """
-        s = df[col].mean()
-        rdf = df.tail(1).copy()
-        rdf.score = s
-        return rdf
-    return pd.concat([avg_votes(g) for _, g in
-                      jd.groupby(['candidate', 'topic_id'])])
+        return pd.Series(df[col].apply(float).mean())
+
+    def mode_merge(df):
+        return pd.Series(Counter(df[col].apply(float).values).most_common(1)[0][0])
+
+    if not indexedby:
+        indexedby = ['candidate', 'topic_id']
+    return jd.groupby(indexedby).apply(locals()[method + '_merge']).rename(columns={0: 'score'})
 
 
 def load_judgement(ljson):

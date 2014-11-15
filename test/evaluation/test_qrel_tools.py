@@ -8,7 +8,7 @@ Github: http://github.com/spacelis
 Description:
     testing
 """
-
+# pylint: disable=too-many-public-methods
 import unittest
 import pandas as pd
 
@@ -35,11 +35,19 @@ class TestAgreement(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_take_most_freq(self):
+    def test_major_vote(self):
         """ max_vote_agreement
         """
-        ag = qt.major_vote(self.jd, 'score')
-        self.assertEqual(ag['score'].values.tolist(), ['2', '3'])
+        ag = qt.merge_votes(self.jd, 'score', method='mode')
+        self.assertEqual(ag['score'].values.tolist(), [2, 3])
+
+    def test_avg_vote(self):
+        """ test avg_vote
+        """
+        ag = qt.merge_votes(self.jd, 'score', method='avg')
+        self.assertEqual(ag['score'].values.tolist(), [2., 9./4])
+        ag = qt.merge_votes(self.jd, 'score')
+        self.assertEqual(ag['score'].values.tolist(), [2., 9./4])
 
     def test_kappa(self):
         """ test_kappa

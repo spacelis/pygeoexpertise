@@ -65,7 +65,7 @@ def merge_votes(jd, col, method='avg', indexedby=None):
 
     if not indexedby:
         indexedby = ['candidate', 'topic_id']
-    return jd.groupby(indexedby).apply(locals()[method + '_merge']).rename(columns={0: 'score'})
+    return jd.groupby(indexedby).apply(locals()[method + '_merge']).rename(columns={0: col})
 
 
 def load_judgement(ljson):

@@ -62,9 +62,9 @@ def multi_trec_eval(qrel, rankings):
 
     """
     def evalmethod(df):
+        """ evaluating one method """
         with NamedTemporaryFile(delete=True) as fout:
-            for row in group.iterrows():
-                r = row[1]
+            for _, r in df.iterrows():
                 print >> fout, r['topic_id'], 'Q0', r['candidate'], \
                     r['rank'], r['score'], \
                     r['rank_method'] + "_" + r['profile_type']
@@ -74,12 +74,11 @@ def multi_trec_eval(qrel, rankings):
                 check_output([TREC_EVAL_CMD, '-q']
                              + ['-m' + m for m in TREC_EVAL_M]
                              + [qrel, fout.name]),
-                r['rank_method'],
-                r['profile_type'])
-        return pd.DataFrame.from_records(list(scores)))
+                df.loc['rank_method', 0], df.loc['profile_type', 0])
+        return pd.DataFrame.from_records(list(scores))
 
     return rankings[['topic_id', 'candidate', 'rank', 'score', 'rank_method', 'profile_type']]\
-        .groupby(['rank_method', 'profile_type'])).apply(evalmethod)
+        .groupby(['rank_method', 'profile_type']).apply(evalmethod).reset_index().rename(colums={0: 'score'})
 
 
 def main():

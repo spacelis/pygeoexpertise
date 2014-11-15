@@ -12,6 +12,7 @@ Description:
 
 import csv
 import dateutil
+from tempfile import NamedTemporaryFile
 from collections import Counter
 from collections import defaultdict
 
@@ -66,6 +67,29 @@ def merge_votes(jd, col, method='avg', indexedby=None):
     if not indexedby:
         indexedby = ['candidate', 'topic_id']
     return jd.groupby(indexedby).apply(locals()[method + '_merge']).rename(columns={0: col})
+
+
+def to_qrel(judgement_df, threshold=None, merging_method='avg'):
+    """ Convert the judgement_df into qrel file
+
+    :judgement_df: @todo
+    :returns: @todo
+
+    """
+    votes = judgement_df[['topic_id', 'candidate', 'score']]
+    votes.score = votes.score.apply(float)
+    aggreement = merge_votes(votes, 'score', method=merging_method).reset_index()
+    if threshold:
+        aggreement.score = (aggreement.score > threshold)
+    else:
+        aggreement.score = aggreement.score.apply(int)
+
+    tmp = NamedTemporaryFile('a+', delete=True)
+    for _, (topic_id, candidate, score) in aggreement.iterrows():
+        tmp.write(' '.join([topic_id, 'Q0', candidate, str(score)]) + '\n')
+    tmp.flush()
+    tmp.seek(0)
+    return tmp
 
 
 def load_judgement(ljson):

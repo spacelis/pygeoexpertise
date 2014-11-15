@@ -49,6 +49,11 @@ class TestAgreement(unittest.TestCase):
         ag = qt.merge_votes(self.jd, 'score')
         self.assertEqual(ag['score'].values.tolist(), [2., 9./4])
 
+    def test_to_quel(self):
+        """ test to_quel"""
+        with qt.to_qrel(self.jd) as fin:
+            self.assertEqual(fin.read(), 'a Q0 t1 2\nb Q0 t1 2\n')
+
     def test_kappa(self):
         """ test_kappa
         """

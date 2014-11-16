@@ -80,12 +80,12 @@ def to_qrel(judgement_df, threshold=None, merging_method='avg'):
     votes.score = votes.score.apply(float)
     aggreement = merge_votes(votes, 'score', method=merging_method).reset_index()
     if threshold:
-        aggreement.score = (aggreement.score > threshold)
+        aggreement.score = (aggreement.score > threshold).astype(int)
     else:
         aggreement.score = aggreement.score.apply(int)
 
     tmp = NamedTemporaryFile('a+', delete=True)
-    for _, (topic_id, candidate, score) in aggreement.iterrows():
+    for _, (topic_id, candidate, score) in aggreement[['topic_id', 'candidate', 'score']].iterrows():
         tmp.write(' '.join([topic_id, 'Q0', candidate, str(score)]) + '\n')
     tmp.flush()
     tmp.seek(0)

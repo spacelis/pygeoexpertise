@@ -74,11 +74,11 @@ def multi_trec_eval(qrel, rankings):
                 check_output([TREC_EVAL_CMD, '-q']
                              + ['-m' + m for m in TREC_EVAL_M]
                              + [qrel, fout.name]),
-                df.loc['rank_method', 0], df.loc['profile_type', 0])
+                df['rank_method'].iat[0], df['profile_type'].iat[0])
         return pd.DataFrame.from_records(list(scores))
 
     return rankings[['topic_id', 'candidate', 'rank', 'score', 'rank_method', 'profile_type']]\
-        .groupby(['rank_method', 'profile_type']).apply(evalmethod).reset_index().rename(colums={0: 'score'})
+        .groupby(['rank_method', 'profile_type']).apply(evalmethod)
 
 
 def main():

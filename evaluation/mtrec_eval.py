@@ -50,6 +50,7 @@ def output2dict(output, method, profile):
         row['_method'] = method
         row['_profile'] = profile
         row['_topic'] = t
+        row['_topic_type'] = t.split('-')[0]
         yield row
 
 

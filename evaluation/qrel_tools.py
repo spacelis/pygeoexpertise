@@ -79,7 +79,7 @@ def to_qrel(judgement_df, threshold=None, merging_method='avg'):
     votes = judgement_df[['topic_id', 'candidate', 'score']]
     votes.score = votes.score.apply(float)
     aggreement = merge_votes(votes, 'score', method=merging_method).reset_index()
-    if threshold:
+    if threshold is not None:
         aggreement.score = (aggreement.score > threshold).astype(int)
     else:
         aggreement.score = aggreement.score.apply(int)

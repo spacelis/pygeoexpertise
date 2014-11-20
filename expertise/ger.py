@@ -267,7 +267,7 @@ def converge(func, init, **kwargs):
         it = inf()
     for _ in it:
         val = func(old_val)
-        val = val / val.sum()  # Normalization so that it will converge
+        val = val / np.sqrt(np.square(val).sum())  # Normalization so that it will converge
         if np.allclose(val, old_val, **all_close_params):
             return val
         prev_val = old_val

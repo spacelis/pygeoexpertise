@@ -55,18 +55,23 @@ def merge_votes(jd, col, method='avg', indexedby=None):
             'mode' is for use the most frequent vote per item
         :indexedby: (default=['candidate', 'topic_id'])
                   The columns labeling scores
-        :return: Dataframe with aggreed judgement
+        :return: Dataframe with agreed judgement
     """
     def avg_merge(df):
         """ dummy """
         return pd.Series(df[col].apply(float).mean())
 
     def mode_merge(df):
+        """ dummy """
         return pd.Series(Counter(df[col].apply(float).values).most_common(1)[0][0])
+
+    def agreed_merge(df):
+        """ dummy """
+        return pd.Series(df[col].iloc[0] if all(df[col] == df[col].iloc[0]) else None)
 
     if not indexedby:
         indexedby = ['candidate', 'topic_id']
-    return jd.groupby(indexedby).apply(locals()[method + '_merge']).rename(columns={0: col})
+    return jd.groupby(indexedby).apply(locals()[method + '_merge']).reset_index().rename(columns={0: col})
 
 
 def to_qrel(judgement_df, threshold=None, merging_method='avg'):
@@ -78,14 +83,22 @@ def to_qrel(judgement_df, threshold=None, merging_method='avg'):
     """
     votes = judgement_df[['topic_id', 'candidate', 'score']]
     votes.score = votes.score.apply(float)
-    aggreement = merge_votes(votes, 'score', method=merging_method).reset_index()
-    if threshold is not None:
-        aggreement.score = (aggreement.score > threshold).astype(int)
-    else:
-        aggreement.score = aggreement.score.apply(int)
+    agreement = votes
 
+    if merging_method == 'avg':
+        agreement = merge_votes(votes, 'score', method=merging_method).reset_index()
+
+    if threshold is not None:
+        agreement.score = (agreement.score > threshold).astype(int)
+    else:
+        agreement.score = agreement.score.apply(int)
+
+    if merging_method in ['mode', 'agreed']:
+        agreement = merge_votes(votes, 'score', method=merging_method).reset_index()
+
+    print len(agreement)
     tmp = NamedTemporaryFile('a+', delete=True)
-    for _, (topic_id, candidate, score) in aggreement[['topic_id', 'candidate', 'score']].iterrows():
+    for _, (topic_id, candidate, score) in agreement[['topic_id', 'candidate', 'score']].iterrows():
         tmp.write(' '.join([topic_id, 'Q0', candidate, str(score)]) + '\n')
     tmp.flush()
     tmp.seek(0)
@@ -198,7 +211,7 @@ def cohen_kappa_score(arr1, arr2, extra_info=False):
 
 
 def cohen_kappa_df(jdf1, jdf2, join_on, field):
-    """ Calculate the Cohen's kappa for inter-rater aggreement
+    """ Calculate the Cohen's kappa for inter-rater agreement
 
         http://en.wikipedia.org/wiki/Cohen's_kappa
 

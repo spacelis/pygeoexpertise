@@ -67,7 +67,7 @@ def merge_votes(jd, col, method='avg', indexedby=None):
 
     def agreed_merge(df):
         """ dummy """
-        return pd.Series(df[col].iloc[0] if all(df[col] == df[col].iloc[0]) else None)
+        return pd.Series(df[col].iloc[0] if all(df[col] == df[col].iloc[0]) and len(df) > 1 else None)
 
     if not indexedby:
         indexedby = ['candidate', 'topic_id']
